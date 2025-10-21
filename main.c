@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <math.h>
 
-#define FRAME_COUNT 8   
+#define FRAME_RIGHT 8
+#define FRAME_LEFT 8
+#define FRAME_UP 9
 
 int main() {
     InitWindow(0, 0, "Sonho de Papel - Rabisco em Movimento");
@@ -12,23 +14,37 @@ int main() {
     int screenHeight = GetScreenHeight();
 
     Texture2D mapa = LoadTexture("mapa.png");
-
     Texture2D idle = LoadTexture("idle.png");
-    
-    Texture2D walkRight[FRAME_COUNT];
-    for (int i = 0; i < FRAME_COUNT; i++) {
+
+    Texture2D walkRight[FRAME_RIGHT];
+    for (int i = 0; i < FRAME_RIGHT; i++) {
         char filename[32];
         sprintf(filename, "walk_right%d.png", i + 1);
         walkRight[i] = LoadTexture(filename);
     }
 
+    Texture2D walkLeft[FRAME_LEFT];
+    for (int i = 0; i < FRAME_LEFT; i++) {
+        char filename[32];
+        sprintf(filename, "walk_left%d.png", i + 1);
+        walkLeft[i] = LoadTexture(filename);
+    }
+
+    Texture2D walkUp[FRAME_UP];
+    for (int i = 0; i < FRAME_UP; i++) {
+        char filename[32];
+        sprintf(filename, "walk_up%d.png", i + 1);
+        walkUp[i] = LoadTexture(filename);
+    }
+
     int frame = 0;
     float frameTime = 0;
-    float frameDelay = 1.0f / 8.0f; 
+    float frameDelayRight = 1.0f / 8.0f;
+    float frameDelayUp = 1.0f / 9.0f;
 
     Vector2 pos = { screenWidth / 2.0f, screenHeight / 2.0f };
-    float escala = 0.2f;  
-    float speed = 4.0f;  
+    float escala = 0.2f;
+    float speed = 4.0f;
 
     SetTargetFPS(60);
 
@@ -49,13 +65,30 @@ int main() {
         pos.x += move.x * speed;
         pos.y += move.y * speed;
 
+        if (pos.x < 0) pos.x = 0;
+        if (pos.y < 0) pos.y = 0;
+        if (pos.x > screenWidth - walkRight[0].width * escala) pos.x = screenWidth - walkRight[0].width * escala;
+        if (pos.y > screenHeight - walkRight[0].height * escala) pos.y = screenHeight - walkRight[0].height * escala;
+
         bool movingRight = (move.x > 0 && fabs(move.x) >= fabs(move.y));
+        bool movingLeft  = (move.x < 0 && fabs(move.x) >= fabs(move.y));
+        bool movingUp    = (move.y < 0);
+        bool isMoving    = (len > 0);
+
 
         frameTime += GetFrameTime();
-        if (movingRight) {
-            if (frameTime >= frameDelay) {
-                frame = (frame + 1) % FRAME_COUNT;
-                frameTime = 0;
+
+        if (isMoving) {
+            if (movingUp) {
+                if (frameTime >= frameDelayUp) {
+                    frame = (frame + 1) % FRAME_UP;
+                    frameTime = 0;
+                }
+            } else if (movingRight || movingLeft) {
+                if (frameTime >= frameDelayRight) {
+                    frame = (frame + 1) % FRAME_RIGHT;
+                    frameTime = 0;
+                }
             }
         } else {
             frame = 0;
@@ -73,8 +106,12 @@ int main() {
             WHITE
         );
 
-        if (movingRight)
+        if (movingUp)
+            DrawTextureEx(walkUp[frame], pos, 0.0f, escala, WHITE);
+        else if (movingRight)
             DrawTextureEx(walkRight[frame], pos, 0.0f, escala, WHITE);
+        else if (movingLeft)
+            DrawTextureEx(walkLeft[frame], pos, 0.0f, escala, WHITE);
         else
             DrawTextureEx(idle, pos, 0.0f, escala, WHITE);
 
@@ -83,7 +120,10 @@ int main() {
 
     UnloadTexture(mapa);
     UnloadTexture(idle);
-    for (int i = 0; i < FRAME_COUNT; i++) UnloadTexture(walkRight[i]);
+    for (int i = 0; i < FRAME_RIGHT; i++) UnloadTexture(walkRight[i]);
+    for (int i = 0; i < FRAME_LEFT; i++)  UnloadTexture(walkLeft[i]);
+    for (int i = 0; i < FRAME_UP; i++)    UnloadTexture(walkUp[i]);
+
     CloseWindow();
     return 0;
 }
