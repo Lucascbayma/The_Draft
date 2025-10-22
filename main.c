@@ -6,6 +6,8 @@
 #define FRAME_LEFT 8
 #define FRAME_UP 9
 
+typedef enum { DIR_IDLE, DIR_RIGHT, DIR_LEFT, DIR_UP, DIR_DOWN } PlayerDirection;
+
 int main() {
     InitWindow(0, 0, "Sonho de Papel - Rabisco em Movimento");
     ToggleFullscreen();
@@ -13,27 +15,27 @@ int main() {
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
 
-    Texture2D mapa = LoadTexture("mapa.png");
-    Texture2D idle = LoadTexture("idle.png");
+    Texture2D mapa = LoadTexture("images/mapa.png");
+    Texture2D idle = LoadTexture("images/idle.png");
 
     Texture2D walkRight[FRAME_RIGHT];
     for (int i = 0; i < FRAME_RIGHT; i++) {
         char filename[32];
-        sprintf(filename, "walk_right%d.png", i + 1);
+        sprintf(filename, "images/walk_right%d.png", i + 1);
         walkRight[i] = LoadTexture(filename);
     }
 
     Texture2D walkLeft[FRAME_LEFT];
     for (int i = 0; i < FRAME_LEFT; i++) {
         char filename[32];
-        sprintf(filename, "walk_left%d.png", i + 1);
+        sprintf(filename, "images/walk_left%d.png", i + 1);
         walkLeft[i] = LoadTexture(filename);
     }
 
     Texture2D walkUp[FRAME_UP];
     for (int i = 0; i < FRAME_UP; i++) {
         char filename[32];
-        sprintf(filename, "walk_up%d.png", i + 1);
+        sprintf(filename, "images/walk_up%d.png", i + 1);
         walkUp[i] = LoadTexture(filename);
     }
 
@@ -41,6 +43,7 @@ int main() {
     float frameTime = 0;
     float frameDelayRight = 1.0f / 8.0f;
     float frameDelayUp = 1.0f / 9.0f;
+    PlayerDirection lastDir = DIR_IDLE;
 
     Vector2 pos = { screenWidth / 2.0f, screenHeight / 2.0f };
     float escala = 0.2f;
@@ -57,7 +60,9 @@ int main() {
         if (IsKeyDown(KEY_DOWN))  move.y += 1;
 
         float len = sqrtf(move.x * move.x + move.y * move.y);
-        if (len > 0) {
+        bool isMoving = (len > 0);
+
+        if (isMoving) {
             move.x /= len;
             move.y /= len;
         }
@@ -70,21 +75,30 @@ int main() {
         if (pos.x > screenWidth - walkRight[0].width * escala) pos.x = screenWidth - walkRight[0].width * escala;
         if (pos.y > screenHeight - walkRight[0].height * escala) pos.y = screenHeight - walkRight[0].height * escala;
 
-        bool movingRight = (move.x > 0 && fabs(move.x) >= fabs(move.y));
-        bool movingLeft  = (move.x < 0 && fabs(move.x) >= fabs(move.y));
-        bool movingUp    = (move.y < 0);
-        bool isMoving    = (len > 0);
-
+        if (isMoving) {
+            if (fabs(move.x) > fabs(move.y)) {
+                if (move.x > 0) lastDir = DIR_RIGHT;
+                else lastDir = DIR_LEFT;
+            } else {
+                if (move.y < 0) lastDir = DIR_UP;
+                else lastDir = DIR_DOWN;
+            }
+        } else {
+            lastDir = DIR_IDLE;
+        }
 
         frameTime += GetFrameTime();
 
+        bool movingVertical = (lastDir == DIR_UP || lastDir == DIR_DOWN);
+        bool movingHorizontal = (lastDir == DIR_RIGHT || lastDir == DIR_LEFT);
+
         if (isMoving) {
-            if (movingUp) {
+            if (movingVertical) {
                 if (frameTime >= frameDelayUp) {
                     frame = (frame + 1) % FRAME_UP;
                     frameTime = 0;
                 }
-            } else if (movingRight || movingLeft) {
+            } else if (movingHorizontal) {
                 if (frameTime >= frameDelayRight) {
                     frame = (frame + 1) % FRAME_RIGHT;
                     frameTime = 0;
@@ -106,14 +120,20 @@ int main() {
             WHITE
         );
 
-        if (movingUp)
-            DrawTextureEx(walkUp[frame], pos, 0.0f, escala, WHITE);
-        else if (movingRight)
-            DrawTextureEx(walkRight[frame], pos, 0.0f, escala, WHITE);
-        else if (movingLeft)
-            DrawTextureEx(walkLeft[frame], pos, 0.0f, escala, WHITE);
+        Texture2D currentFrame = idle;
+
+        if (lastDir == DIR_UP)
+            currentFrame = walkUp[frame];
+        else if (lastDir == DIR_RIGHT)
+            currentFrame = walkRight[frame];
+        else if (lastDir == DIR_LEFT)
+            currentFrame = walkLeft[frame];
+        else if (lastDir == DIR_DOWN)
+            currentFrame = idle;
         else
-            DrawTextureEx(idle, pos, 0.0f, escala, WHITE);
+            currentFrame = idle;
+
+        DrawTextureEx(currentFrame, pos, 0.0f, escala, WHITE);
 
         EndDrawing();
     }
