@@ -19,14 +19,14 @@ int main() {
     // --- Configuração da Câmera ---
     Camera2D camera = { 0 };
     camera.target = rabisco.pos;
-    camera.offset = (Vector2){ screenW / 2.5f, screenH / 2.5f };
+    camera.offset = (Vector2){ screenW / 2.0f, screenH / 2.0f };
     camera.rotation = 0.0f;
 
     // Zoom definido para preencher o máximo possível da tela sem mostrar o fundo além do mapa
     float zoomX = (float)screenW / (float)mapa.width;
     float zoomY = (float)screenH / (float)mapa.height;
     camera.zoom = (zoomX < zoomY ? zoomX : zoomY); // Mantém proporção, sem distorcer o mapa
-    camera.zoom *= 2.25f; // Pequeno aumento para dar sensação de aproximação
+    camera.zoom *= 1.7f; // Pequeno aumento para dar sensação de aproximação
 
     SetTargetFPS(60);
 

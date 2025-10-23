@@ -20,7 +20,7 @@ static PlayerDirection lastDir = DIR_IDLE;
 
 void InitRabisco(Rabisco *r, float x, float y) {
     r->pos = (Vector2){x, y};
-    r->escala = 0.2f;
+    r->escala = 0.15f;
     r->vida = 6;
     r->dano = 2;
     r->velocidade = 4.0f;
