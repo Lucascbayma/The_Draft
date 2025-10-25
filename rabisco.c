@@ -21,7 +21,12 @@ static PlayerDirection lastDir = DIR_IDLE;
 void InitRabisco(Rabisco *r, float x, float y) {
     r->pos = (Vector2){x, y};
     r->escala = 0.15f;
-    r->vida = 6;
+    
+    // --- NOVAS VARIÁVEIS DE ESTADO ---
+    r->maxVida = 4;
+    r->vida = r->maxVida;
+    r->moedas = 0;
+    
     r->dano = 2;
     r->velocidade = 4.0f;
     r->distanciaAtaque = 40.0f;
@@ -44,6 +49,11 @@ void InitRabisco(Rabisco *r, float x, float y) {
         sprintf(filename, "images/walk_up%d.png", i + 1);
         walkUp[i] = LoadTexture(filename);
     }
+
+    // --- CARREGAMENTO DAS TEXTURAS DO HUD (DENTRO DO R) ---
+    r->heartFull = LoadTexture("images/heart.png");
+    r->heartBroken = LoadTexture("images/heart_broken.png");
+    r->coinIcon = LoadTexture("images/moeda.png");
 }
 
 void UpdateRabisco(Rabisco *r, int screenW, int screenH) {
@@ -113,9 +123,13 @@ void DrawRabisco(Rabisco *r) {
     DrawTextureEx(currentFrame, r->pos, 0.0f, r->escala, WHITE);
 }
 
-void UnloadRabisco(Rabisco *r) {
+void UnloadRabisco(Rabisco *r){
     UnloadTexture(idle);
-    for (int i = 0; i < FRAME_RIGHT; i++) UnloadTexture(walkRight[i]);
-    for (int i = 0; i < FRAME_LEFT; i++)  UnloadTexture(walkLeft[i]);
-    for (int i = 0; i < FRAME_UP; i++)    UnloadTexture(walkUp[i]);
+    for(int i = 0; i < FRAME_RIGHT; i++) UnloadTexture(walkRight[i]);
+    for(int i = 0; i < FRAME_LEFT; i++) UnloadTexture(walkLeft[i]);
+    for(int i = 0; i < FRAME_UP; i++) UnloadTexture(walkUp[i]);
+
+    UnloadTexture(r->heartFull);
+    UnloadTexture(r->heartBroken);
+    UnloadTexture(r->coinIcon);
 }
