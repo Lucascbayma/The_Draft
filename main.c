@@ -3,7 +3,7 @@
 #include "stdio.h"
 
 int main() {
-    InitWindow(0, 0, "Sonho de Papel - Rabisco em Movimento");
+    InitWindow(0, 0, "The Draft");
     ToggleFullscreen();
 
     int screenW = GetScreenWidth();
