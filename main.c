@@ -57,7 +57,7 @@ int main() {
         int padding = 20;
         
         // HUD de Vida
-        int heartSize = 50;
+        int heartSize = 70;
         
         for (int i = 0; i < rabisco.maxVida; i++) {
             Texture2D heartTexture = (i < rabisco.vida) ? rabisco.heartFull : rabisco.heartBroken;
@@ -74,8 +74,8 @@ int main() {
         }
         
         // HUD de Moedas 
-        int coinSize = 40;
-        int fontSize = 35;
+        int coinSize = 60;
+        int fontSize = 55;
 
         int coinPosY = padding + heartSize + padding/2;
         int textPosX = padding + coinSize + 10;
