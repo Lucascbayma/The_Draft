@@ -3,24 +3,22 @@
 #include "stdio.h"
 
 int main() {
-    // --- Inicialização da Janela ---
     InitWindow(0, 0, "Sonho de Papel - Rabisco em Movimento");
     ToggleFullscreen();
 
     int screenW = GetScreenWidth();
     int screenH = GetScreenHeight();
 
-    // --- Carregamento do mapa ---
+    // mapBorderOffsetX: Controla limites ESQUERDO e DIREITO
+    // mapBorderOffsetY: Controla limites SUPERIOR e INFERIOR
+    const int mapBorderOffsetX = 140; 
+    const int mapBorderOffsetY = 110; 
+
     Texture2D mapa = LoadTexture("images/mapa.png");
 
-    // --- Inicializa o Rabisco ---
     Rabisco rabisco;
     InitRabisco(&rabisco, mapa.width / 2.0f, mapa.height / 2.0f);
 
-    // --- Carrega fonte personalizada ---
-    Font gameFont = LoadFont("assets/PatrickHandSC-Regular.ttf");
-
-    // --- Configuração da Câmera ---
     Camera2D camera = { 0 };
     camera.target = rabisco.pos;
     camera.offset = (Vector2){ screenW / 2.0f, screenH / 2.0f };
@@ -29,12 +27,12 @@ int main() {
     float zoomX = (float)screenW / (float)mapa.width;
     float zoomY = (float)screenH / (float)mapa.height;
     camera.zoom = (zoomX < zoomY ? zoomX : zoomY);
-    camera.zoom *= 1.7f;
+    camera.zoom *= 2.0f;
 
     SetTargetFPS(60);
 
     while (!WindowShouldClose()) {
-        UpdateRabisco(&rabisco, mapa.width, mapa.height);
+        UpdateRabisco(&rabisco, mapa.width, mapa.height, mapBorderOffsetX, mapBorderOffsetY); 
 
         Vector2 desiredTarget = rabisco.pos;
         camera.target.x += (desiredTarget.x - camera.target.x) * 0.15f;
@@ -57,28 +55,35 @@ int main() {
         EndMode2D();
         
         int padding = 20;
-
-        // --- 1. HUD de Vida (Corações) ---
-        int heartSize = 70;
+        
+        // HUD de Vida
+        int heartSize = 50;
+        
         for (int i = 0; i < rabisco.maxVida; i++) {
             Texture2D heartTexture = (i < rabisco.vida) ? rabisco.heartFull : rabisco.heartBroken;
+            
             float scaleFactor = (float)heartSize / heartTexture.width;
+            
             DrawTextureEx(
                 heartTexture,
-                (Vector2){ padding + i * (heartSize + 8), padding },
+                (Vector2){ padding + i * (heartSize + 5), padding },
                 0.0f,
                 scaleFactor,
                 WHITE
             );
         }
+        
+        // HUD de Moedas 
+        int coinSize = 40;
+        int fontSize = 35;
 
-        // --- 2. HUD de Moedas ---
-        int coinSize = 60;
-        int fontSize = 55;
+        int coinPosY = padding + heartSize + padding/2;
+        int textPosX = padding + coinSize + 10;
+        int textPosY = coinPosY + (coinSize - fontSize) / 2;
+        
+        const char* coinText = TextFormat("%02d", rabisco.moedas);
 
-        int coinPosY = padding + heartSize + padding / 2;
-        float coinScale = (float)coinSize / rabisco.coinIcon.width;
-
+        float coinScale = (float)coinSize/rabisco.coinIcon.width;
         DrawTextureEx(
             rabisco.coinIcon,
             (Vector2){ padding, coinPosY },
@@ -87,20 +92,23 @@ int main() {
             WHITE
         );
 
-        // Desenha contagem com fonte personalizada
-        DrawTextEx(
-            gameFont,
-            TextFormat("x %02d", rabisco.moedas),
-            (Vector2){ padding + coinSize + 15, coinPosY + (coinSize - fontSize) / 3 },
+        DrawText(coinText, textPosX - 2, textPosY, fontSize, BLACK);
+        DrawText(coinText, textPosX + 2, textPosY, fontSize, BLACK);
+        DrawText(coinText, textPosX, textPosY - 2, fontSize, BLACK);
+        DrawText(coinText, textPosX, textPosY + 2, fontSize, BLACK);
+        
+        DrawText(
+            coinText,
+            textPosX,
+            textPosY,
             fontSize,
-            2,
             WHITE
         );
-
+        
         EndDrawing();
     }
 
-    UnloadFont(gameFont);
+    // Liberar recursos
     UnloadRabisco(&rabisco);
     UnloadTexture(mapa);
     CloseWindow();

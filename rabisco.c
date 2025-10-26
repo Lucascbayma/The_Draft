@@ -1,4 +1,5 @@
 #include "rabisco.h"
+#include "raymath.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -20,10 +21,9 @@ static PlayerDirection lastDir = DIR_IDLE;
 
 void InitRabisco(Rabisco *r, float x, float y) {
     r->pos = (Vector2){x, y};
-    r->escala = 0.15f;
+    r->escala = 0.10f; 
     
-    // --- NOVAS VARIÁVEIS DE ESTADO ---
-    r->maxVida = 4;
+    r->maxVida = 6;
     r->vida = r->maxVida;
     r->moedas = 0;
     
@@ -50,13 +50,12 @@ void InitRabisco(Rabisco *r, float x, float y) {
         walkUp[i] = LoadTexture(filename);
     }
 
-    // --- CARREGAMENTO DAS TEXTURAS DO HUD (DENTRO DO R) ---
     r->heartFull = LoadTexture("images/heart.png");
     r->heartBroken = LoadTexture("images/heart_broken.png");
     r->coinIcon = LoadTexture("images/moeda.png");
 }
 
-void UpdateRabisco(Rabisco *r, int screenW, int screenH) {
+void UpdateRabisco(Rabisco *r, int mapW, int mapH, int mapBorderOffsetX, int mapBorderOffsetY) { 
     Vector2 move = {0, 0};
 
     if (IsKeyDown(KEY_RIGHT)) move.x += 1;
@@ -71,51 +70,62 @@ void UpdateRabisco(Rabisco *r, int screenW, int screenH) {
         move.x /= len;
         move.y /= len;
     }
+    
+    float dx = move.x * r->velocidade;
+    float dy = move.y * r->velocidade;
+    
+    // Dimensões do personagem escalado
+    float rabiscoW = walkRight[0].width * r->escala;
+    float rabiscoH = walkRight[0].height * r->escala;
+    
+    // Limites MÍNIMOS Superior e Esquerdo
+    float minX = (float)mapBorderOffsetX;
+    float minY = (float)mapBorderOffsetY;
 
-    r->pos.x += move.x * r->velocidade;
-    r->pos.y += move.y * r->velocidade;
+    // Limites MÁXIMOS Direito e Inferior
+    float maxX = (float)mapW - (float)mapBorderOffsetX - rabiscoW; 
+    float maxY = (float)mapH - (float)mapBorderOffsetY - rabiscoH;
+    
+    float nextX = r->pos.x + dx;
+    float nextY = r->pos.y + dy;
 
-    // Limites da tela
-    if (r->pos.x < 0) r->pos.x = 0;
-    if (r->pos.y < 0) r->pos.y = 0;
-    if (r->pos.x > screenW - walkRight[0].width * r->escala)
-        r->pos.x = screenW - walkRight[0].width * r->escala;
-    if (r->pos.y > screenH - walkRight[0].height * r->escala)
-        r->pos.y = screenH - walkRight[0].height * r->escala;
+    r->pos.x = Clamp(nextX, minX, maxX);
+    r->pos.y = Clamp(nextY, minY, maxY);
+
 
     // Direção
-    if (isMoving) {
-        if (fabs(move.x) > fabs(move.y)) {
+    if(isMoving){
+        if(fabs(move.x) > fabs(move.y)){
             lastDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
-        } else {
+        }else{
             lastDir = (move.y < 0) ? DIR_UP : DIR_DOWN;
         }
-    } else {
+    }else{
         lastDir = DIR_IDLE;
     }
 
     frameTime += GetFrameTime();
-    if (frameTime >= frameDelay) {
+    if(frameTime >= frameDelay){
         frame++;
         frameTime = 0;
     }
 
-    if (lastDir == DIR_UP)
+    if(lastDir == DIR_UP)
         frame %= FRAME_UP;
     else
         frame %= FRAME_RIGHT;
 }
 
-void DrawRabisco(Rabisco *r) {
+void DrawRabisco(Rabisco *r){
     Texture2D currentFrame = idle;
 
-    if (lastDir == DIR_UP)
+    if(lastDir == DIR_UP)
         currentFrame = walkUp[frame];
-    else if (lastDir == DIR_RIGHT)
+    else if(lastDir == DIR_RIGHT)
         currentFrame = walkRight[frame];
-    else if (lastDir == DIR_LEFT)
+    else if(lastDir == DIR_LEFT)
         currentFrame = walkLeft[frame];
-    else if (lastDir == DIR_DOWN)
+    else if(lastDir == DIR_DOWN)
         currentFrame = idle;
     else
         currentFrame = idle;
@@ -126,8 +136,8 @@ void DrawRabisco(Rabisco *r) {
 void UnloadRabisco(Rabisco *r){
     UnloadTexture(idle);
     for(int i = 0; i < FRAME_RIGHT; i++) UnloadTexture(walkRight[i]);
-    for(int i = 0; i < FRAME_LEFT; i++) UnloadTexture(walkLeft[i]);
-    for(int i = 0; i < FRAME_UP; i++) UnloadTexture(walkUp[i]);
+    for(int i = 0; i < FRAME_LEFT; i++)  UnloadTexture(walkLeft[i]);
+    for(int i = 0; i < FRAME_UP; i++)    UnloadTexture(walkUp[i]);
 
     UnloadTexture(r->heartFull);
     UnloadTexture(r->heartBroken);
