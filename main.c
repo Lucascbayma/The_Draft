@@ -19,8 +19,6 @@ int main() {
     Rabisco rabisco;
     InitRabisco(&rabisco, mapa.width / 2.0f, mapa.height / 2.0f);
 
-    Font gameFont = LoadFont("assets/PatrickHandSC-Regular.ttf");
-
     Camera2D camera = { 0 };
     camera.target = rabisco.pos;
     camera.offset = (Vector2){ screenW / 2.0f, screenH / 2.0f };
@@ -77,7 +75,8 @@ int main() {
         
         // HUD de Moedas 
         int coinSize = 60;
-        int fontSize = 55;
+        int fontSize = 70;
+        float spacing = 5;
 
         int coinPosY = padding + heartSize + padding/2;
         int textPosX = padding + coinSize + 10;
@@ -94,16 +93,17 @@ int main() {
             WHITE
         );
 
-        DrawText(coinText, textPosX - 2, textPosY, fontSize, BLACK);
-        DrawText(coinText, textPosX + 2, textPosY, fontSize, BLACK);
-        DrawText(coinText, textPosX, textPosY - 2, fontSize, BLACK);
-        DrawText(coinText, textPosX, textPosY + 2, fontSize, BLACK);
-        
-        DrawText(
+        DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX - 2, textPosY}, fontSize, spacing, BLACK);
+        DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX + 2, textPosY}, fontSize, spacing, BLACK);
+        DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY - 2}, fontSize, spacing, BLACK);
+        DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY + 2}, fontSize, spacing, BLACK);
+
+        DrawTextEx(
+            rabisco.hudFont,
             coinText,
-            textPosX,
-            textPosY,
+            (Vector2){textPosX, textPosY},
             fontSize,
+            spacing,
             WHITE
         );
         
@@ -111,7 +111,6 @@ int main() {
     }
 
     // Liberar recursos
-    UnloadFont(gameFont);
     UnloadRabisco(&rabisco);
     UnloadTexture(mapa);
     CloseWindow();

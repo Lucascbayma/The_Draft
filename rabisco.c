@@ -23,7 +23,7 @@ void InitRabisco(Rabisco *r, float x, float y) {
     r->pos = (Vector2){x, y};
     r->escala = 0.10f; 
     
-    r->maxVida = 6;
+    r->maxVida = 4;
     r->vida = r->maxVida;
     r->moedas = 0;
     
@@ -53,6 +53,7 @@ void InitRabisco(Rabisco *r, float x, float y) {
     r->heartFull = LoadTexture("images/heart.png");
     r->heartBroken = LoadTexture("images/heart_broken.png");
     r->coinIcon = LoadTexture("images/moeda.png");
+    r->hudFont = LoadFontEx("assets/PatrickHandSC-Regular.ttf", 40, 0, 0); 
 }
 
 void UpdateRabisco(Rabisco *r, int mapW, int mapH, int mapBorderOffsetX, int mapBorderOffsetY) { 
@@ -142,4 +143,5 @@ void UnloadRabisco(Rabisco *r){
     UnloadTexture(r->heartFull);
     UnloadTexture(r->heartBroken);
     UnloadTexture(r->coinIcon);
+    UnloadFont(r->hudFont);
 }

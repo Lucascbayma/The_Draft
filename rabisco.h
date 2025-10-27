@@ -17,6 +17,7 @@ typedef struct {
     Texture2D heartFull;
     Texture2D heartBroken;
     Texture2D coinIcon;
+    Font hudFont;
     
 } Rabisco;
 
