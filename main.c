@@ -19,6 +19,8 @@ int main() {
     Rabisco rabisco;
     InitRabisco(&rabisco, mapa.width / 2.0f, mapa.height / 2.0f);
 
+    Font gameFont = LoadFont("assets/PatrickHandSC-Regular.ttf");
+
     Camera2D camera = { 0 };
     camera.target = rabisco.pos;
     camera.offset = (Vector2){ screenW / 2.0f, screenH / 2.0f };
@@ -109,6 +111,7 @@ int main() {
     }
 
     // Liberar recursos
+    UnloadFont(gameFont);
     UnloadRabisco(&rabisco);
     UnloadTexture(mapa);
     CloseWindow();
