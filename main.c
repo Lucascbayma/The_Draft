@@ -9,10 +9,11 @@ int main() {
     int screenW = GetScreenWidth();
     int screenH = GetScreenHeight();
 
-    // mapBorderOffsetX: Controla limites ESQUERDO e DIREITO
-    // mapBorderOffsetY: Controla limites SUPERIOR e INFERIOR
-    const int mapBorderOffsetX = 140; 
-    const int mapBorderOffsetY = 110; 
+    // Bordas individuais do mapa
+    const int mapBorderTop = 45;
+    const int mapBorderBottom = 120;
+    const int mapBorderLeft = 100;
+    const int mapBorderRight = 140;
 
     Texture2D mapa = LoadTexture("images/mapa.png");
 
@@ -32,7 +33,9 @@ int main() {
     SetTargetFPS(60);
 
     while (!WindowShouldClose()) {
-        UpdateRabisco(&rabisco, mapa.width, mapa.height, mapBorderOffsetX, mapBorderOffsetY); 
+        UpdateRabisco(&rabisco, mapa.width, mapa.height, 
+                      mapBorderTop, mapBorderBottom, 
+                      mapBorderLeft, mapBorderRight); 
 
         Vector2 desiredTarget = rabisco.pos;
         camera.target.x += (desiredTarget.x - camera.target.x) * 0.15f;
@@ -55,65 +58,36 @@ int main() {
         EndMode2D();
         
         int padding = 20;
-        
-        // HUD de Vida
         int heartSize = 70;
         
         for (int i = 0; i < rabisco.maxVida; i++) {
             Texture2D heartTexture = (i < rabisco.vida) ? rabisco.heartFull : rabisco.heartBroken;
-            
             float scaleFactor = (float)heartSize / heartTexture.width;
-            
-            DrawTextureEx(
-                heartTexture,
-                (Vector2){ padding + i * (heartSize + 5), padding },
-                0.0f,
-                scaleFactor,
-                WHITE
-            );
+            DrawTextureEx(heartTexture, (Vector2){ padding + i * (heartSize + 5), padding }, 0.0f, scaleFactor, WHITE);
         }
-        
-        // HUD de Moedas 
+
         int coinSize = 60;
         int fontSize = 70;
         float spacing = 5;
-
         int coinPosY = padding + heartSize + padding/2;
         int textPosX = padding + coinSize + 10;
         int textPosY = coinPosY + (coinSize - fontSize) / 2;
         
         const char* coinText = TextFormat("%02d", rabisco.moedas);
-
         float coinScale = (float)coinSize/rabisco.coinIcon.width;
-        DrawTextureEx(
-            rabisco.coinIcon,
-            (Vector2){ padding, coinPosY },
-            0.0f,
-            coinScale,
-            WHITE
-        );
+        DrawTextureEx(rabisco.coinIcon, (Vector2){ padding, coinPosY }, 0.0f, coinScale, WHITE);
 
         DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX - 2, textPosY}, fontSize, spacing, BLACK);
         DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX + 2, textPosY}, fontSize, spacing, BLACK);
         DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY - 2}, fontSize, spacing, BLACK);
         DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY + 2}, fontSize, spacing, BLACK);
-
-        DrawTextEx(
-            rabisco.hudFont,
-            coinText,
-            (Vector2){textPosX, textPosY},
-            fontSize,
-            spacing,
-            WHITE
-        );
+        DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY}, fontSize, spacing, WHITE);
         
         EndDrawing();
     }
 
-    // Liberar recursos
     UnloadRabisco(&rabisco);
     UnloadTexture(mapa);
     CloseWindow();
-
     return 0;
 }

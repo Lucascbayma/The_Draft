@@ -22,7 +22,9 @@ typedef struct {
 } Rabisco;
 
 void InitRabisco(Rabisco *r, float x, float y);
-void UpdateRabisco(Rabisco *r, int mapW, int mapH, int mapBorderOffsetX, int mapBorderOffsetY); 
+void UpdateRabisco(Rabisco *r, int mapW, int mapH,
+    int borderTop, int borderBottom,
+    int borderLeft, int borderRight);
 void DrawRabisco(Rabisco *r);
 void UnloadRabisco(Rabisco *r);
 

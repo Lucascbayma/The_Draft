@@ -56,65 +56,63 @@ void InitRabisco(Rabisco *r, float x, float y) {
     r->hudFont = LoadFontEx("assets/PatrickHandSC-Regular.ttf", 40, 0, 0); 
 }
 
-void UpdateRabisco(Rabisco *r, int mapW, int mapH, int mapBorderOffsetX, int mapBorderOffsetY) { 
-    Vector2 move = {0, 0};
+void UpdateRabisco(Rabisco *r, int mapW, int mapH, 
+    int borderTop, int borderBottom, 
+    int borderLeft, int borderRight) 
+{ 
+Vector2 move = {0, 0};
 
-    if (IsKeyDown(KEY_RIGHT)) move.x += 1;
-    if (IsKeyDown(KEY_LEFT))  move.x -= 1;
-    if (IsKeyDown(KEY_UP))    move.y -= 1;
-    if (IsKeyDown(KEY_DOWN))  move.y += 1;
+if (IsKeyDown(KEY_RIGHT)) move.x += 1;
+if (IsKeyDown(KEY_LEFT))  move.x -= 1;
+if (IsKeyDown(KEY_UP))    move.y -= 1;
+if (IsKeyDown(KEY_DOWN))  move.y += 1;
 
-    float len = sqrtf(move.x * move.x + move.y * move.y);
-    bool isMoving = (len > 0);
+float len = sqrtf(move.x * move.x + move.y * move.y);
+bool isMoving = (len > 0);
 
-    if (isMoving) {
-        move.x /= len;
-        move.y /= len;
-    }
-    
-    float dx = move.x * r->velocidade;
-    float dy = move.y * r->velocidade;
-    
-    // Dimensões do personagem escalado
-    float rabiscoW = walkRight[0].width * r->escala;
-    float rabiscoH = walkRight[0].height * r->escala;
-    
-    // Limites MÍNIMOS Superior e Esquerdo
-    float minX = (float)mapBorderOffsetX;
-    float minY = (float)mapBorderOffsetY;
+if (isMoving) {
+move.x /= len;
+move.y /= len;
+}
 
-    // Limites MÁXIMOS Direito e Inferior
-    float maxX = (float)mapW - (float)mapBorderOffsetX - rabiscoW; 
-    float maxY = (float)mapH - (float)mapBorderOffsetY - rabiscoH;
-    
-    float nextX = r->pos.x + dx;
-    float nextY = r->pos.y + dy;
+float dx = move.x * r->velocidade;
+float dy = move.y * r->velocidade;
 
-    r->pos.x = Clamp(nextX, minX, maxX);
-    r->pos.y = Clamp(nextY, minY, maxY);
+float rabiscoW = walkRight[0].width * r->escala;
+float rabiscoH = walkRight[0].height * r->escala;
 
+// Agora cada lado é independente
+float minX = (float)borderLeft;
+float maxX = (float)mapW - (float)borderRight - rabiscoW;
+float minY = (float)borderTop;
+float maxY = (float)mapH - (float)borderBottom - rabiscoH;
 
-    // Direção
-    if(isMoving){
-        if(fabs(move.x) > fabs(move.y)){
-            lastDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
-        }else{
-            lastDir = (move.y < 0) ? DIR_UP : DIR_DOWN;
-        }
-    }else{
-        lastDir = DIR_IDLE;
-    }
+float nextX = r->pos.x + dx;
+float nextY = r->pos.y + dy;
 
-    frameTime += GetFrameTime();
-    if(frameTime >= frameDelay){
-        frame++;
-        frameTime = 0;
-    }
+r->pos.x = Clamp(nextX, minX, maxX);
+r->pos.y = Clamp(nextY, minY, maxY);
 
-    if(lastDir == DIR_UP)
-        frame %= FRAME_UP;
-    else
-        frame %= FRAME_RIGHT;
+if(isMoving){
+if(fabs(move.x) > fabs(move.y)){
+lastDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
+}else{
+lastDir = (move.y < 0) ? DIR_UP : DIR_DOWN;
+}
+}else{
+lastDir = DIR_IDLE;
+}
+
+frameTime += GetFrameTime();
+if(frameTime >= frameDelay){
+frame++;
+frameTime = 0;
+}
+
+if(lastDir == DIR_UP)
+frame %= FRAME_UP;
+else
+frame %= FRAME_RIGHT;
 }
 
 void DrawRabisco(Rabisco *r){
