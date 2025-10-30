@@ -4,76 +4,43 @@
 #include "raylib.h"
 #include "rabisco.h" 
 
-
+typedef enum {
+    TIPO_PADRAO,
+    TIPO_TANQUE,
+    TIPO_ARANHA,
+    TIPO_ATIRADOR_BORRACHA
+} InimigoType;
 
 typedef struct {
-    // --- Campos Base ---
     Vector2 pos;
     float escala;
     int vida;
+    int maxVida;
     int dano;
     float velocidade;
     float distanciaAtaque;
     float velAtaque;
     
-    // --- Campos de "Estado" ---
     bool active;
     Rectangle bounds;
     float attackTimer;
     Color tint;
-} Negro;
-
-typedef struct {
-    // --- Campos Base ---
-    Vector2 pos;
-    float escala;
-    int vida;
-    int dano;
-    float velocidade;
-    float distanciaAtaque;
-    float velAtaque;
     
-    // --- Campos de "Estado" ---
-    bool active;
-    Rectangle bounds;
-    float attackTimer;
-    Color tint;
-} Gordo;
+    InimigoType tipo;
+    Texture2D textura;
+    
+} Inimigo;
 
-typedef struct {
-    // --- Campos Base ---
-    Vector2 pos;
-    float escala;            
-    int vida;                 
-    int dano;                 
-    float velocidade;         
-    float distanciaAtaque;    
-    float velAtaque;          
+void InitInimigoAssets(void);
 
-    // --- Campos de "Estado" ---
-    bool active;
-    Rectangle bounds;         
-    float attackTimer;
-    Color tint;
+void UnloadInimigoAssets(void);
 
-} Aranha;
+void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos);
 
-typedef struct {
-    // --- Campos Base ---
-    Vector2 pos;
-    float escala;
-    int vida;
-    int dano;                 
-    float velocidade;         
-    float distanciaAtaque;    
-    float velAtaque;          
+void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH, int borderTop, int borderBottom, int borderLeft, int borderRight);
 
-    // --- Campos de "Estado" ---
-    bool active;
-    Rectangle bounds;
-    float attackTimer;        
-    Color tint;
+void DrawInimigo(Inimigo *e);
 
-} AtiradorBorracha;
+Rectangle GetInimigoHitbox(Inimigo *e);
 
-#endif 
+#endif
