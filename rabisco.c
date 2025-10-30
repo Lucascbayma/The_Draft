@@ -16,7 +16,6 @@ static int frame = 0;
 static float frameTime = 0;
 static float frameDelay = 1.0f / 8.0f;
 
-typedef enum { DIR_IDLE, DIR_RIGHT, DIR_LEFT, DIR_UP, DIR_DOWN } PlayerDirection;
 static PlayerDirection lastDir = DIR_IDLE;
 
 void InitRabisco(Rabisco *r, float x, float y) {
@@ -29,10 +28,17 @@ void InitRabisco(Rabisco *r, float x, float y) {
     
     r->dano = 2;
     r->velocidade = 4.0f;
-    r->distanciaAtaque = 40.0f;
+    r->distanciaAtaque = 30.0f;
     r->velAtaque = 0.8f;
 
     idle = LoadTexture("images/idle.png");
+
+    r->width = idle.width * r->escala;
+    r->height = idle.height * r->escala;
+    r->facingDir = DIR_DOWN;
+    r->attackTimer = 0.0f;
+    r->attackDuration = 0.25f;
+    r->attackDurationTimer = 0.0f;
 
     for (int i = 0; i < FRAME_RIGHT; i++) {
         char filename[64];
@@ -56,63 +62,77 @@ void InitRabisco(Rabisco *r, float x, float y) {
     r->hudFont = LoadFontEx("assets/PatrickHandSC-Regular.ttf", 40, 0, 0); 
 }
 
-void UpdateRabisco(Rabisco *r, int mapW, int mapH, 
+bool UpdateRabisco(Rabisco *r, int mapW, int mapH, 
     int borderTop, int borderBottom, 
     int borderLeft, int borderRight) 
 { 
-Vector2 move = {0, 0};
+    Vector2 move = {0, 0};
+    bool attackJustStarted = false;
 
-if (IsKeyDown(KEY_RIGHT)) move.x += 1;
-if (IsKeyDown(KEY_LEFT))  move.x -= 1;
-if (IsKeyDown(KEY_UP))    move.y -= 1;
-if (IsKeyDown(KEY_DOWN))  move.y += 1;
+    if (r->attackTimer > 0) r->attackTimer -= GetFrameTime();
+    if (r->attackDurationTimer > 0) r->attackDurationTimer -= GetFrameTime();
 
-float len = sqrtf(move.x * move.x + move.y * move.y);
-bool isMoving = (len > 0);
+    if (IsKeyPressed(KEY_SPACE) && r->attackTimer <= 0) {
+        r->attackTimer = r->velAtaque;
+        r->attackDurationTimer = r->attackDuration;
+        attackJustStarted = true;
+    }
 
-if (isMoving) {
-move.x /= len;
-move.y /= len;
-}
+    if (IsKeyDown(KEY_RIGHT)) move.x += 1;
+    if (IsKeyDown(KEY_LEFT))  move.x -= 1;
+    if (IsKeyDown(KEY_UP))    move.y -= 1;
+    if (IsKeyDown(KEY_DOWN))  move.y += 1;
 
-float dx = move.x * r->velocidade;
-float dy = move.y * r->velocidade;
+    float len = sqrtf(move.x * move.x + move.y * move.y);
+    bool isMoving = (len > 0);
 
-float rabiscoW = walkRight[0].width * r->escala;
-float rabiscoH = walkRight[0].height * r->escala;
+    if (isMoving) {
+        move.x /= len;
+        move.y /= len;
+    }
 
-// Agora cada lado é independente
-float minX = (float)borderLeft;
-float maxX = (float)mapW - (float)borderRight - rabiscoW;
-float minY = (float)borderTop;
-float maxY = (float)mapH - (float)borderBottom - rabiscoH;
+    float dx = move.x * r->velocidade;
+    float dy = move.y * r->velocidade;
 
-float nextX = r->pos.x + dx;
-float nextY = r->pos.y + dy;
+    float minX = (float)borderLeft;
+    float maxX = (float)mapW - (float)borderRight - r->width;
+    float minY = (float)borderTop;
+    float maxY = (float)mapH - (float)borderBottom - r->height;
 
-r->pos.x = Clamp(nextX, minX, maxX);
-r->pos.y = Clamp(nextY, minY, maxY);
+    float nextX = r->pos.x + dx;
+    float nextY = r->pos.y + dy;
 
-if(isMoving){
-if(fabs(move.x) > fabs(move.y)){
-lastDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
-}else{
-lastDir = (move.y < 0) ? DIR_UP : DIR_DOWN;
-}
-}else{
-lastDir = DIR_IDLE;
-}
+    r->pos.x = Clamp(nextX, minX, maxX);
+    r->pos.y = Clamp(nextY, minY, maxY);
 
-frameTime += GetFrameTime();
-if(frameTime >= frameDelay){
-frame++;
-frameTime = 0;
-}
+    if(isMoving){
+        if(fabs(move.x) > fabs(move.y)){
+            lastDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
+        }else{
+            lastDir = (move.y < 0) ? DIR_UP : DIR_DOWN;
+        }
+        r->facingDir = lastDir;
+    }else{
+        lastDir = DIR_IDLE;
+    }
 
-if(lastDir == DIR_UP)
-frame %= FRAME_UP;
-else
-frame %= FRAME_RIGHT;
+    frameTime += GetFrameTime();
+    if(frameTime >= frameDelay){
+        frame++;
+        frameTime = 0;
+    }
+
+    if (lastDir == DIR_UP) {
+        frame %= FRAME_UP;
+    } else if (lastDir == DIR_LEFT) {
+        frame %= FRAME_LEFT;
+    } else if (lastDir == DIR_RIGHT) {
+        frame %= FRAME_RIGHT;
+    } else {
+        frame = 0;
+    }
+    
+    return attackJustStarted;
 }
 
 void DrawRabisco(Rabisco *r){
@@ -130,6 +150,11 @@ void DrawRabisco(Rabisco *r){
         currentFrame = idle;
 
     DrawTextureEx(currentFrame, r->pos, 0.0f, r->escala, WHITE);
+
+    if (r->attackDurationTimer > 0) {
+        Rectangle attackBox = GetRabiscoAttackHitbox(r);
+        DrawRectangleRec(attackBox, (Color){255, 255, 0, 100}); 
+    }
 }
 
 void UnloadRabisco(Rabisco *r){
@@ -142,4 +167,59 @@ void UnloadRabisco(Rabisco *r){
     UnloadTexture(r->heartBroken);
     UnloadTexture(r->coinIcon);
     UnloadFont(r->hudFont);
+}
+
+Rectangle GetRabiscoAttackHitbox(Rabisco *r) {
+    Rectangle hitbox;
+    
+    // Pega o valor de 'distanciaAtaque' que você definiu no InitRabisco
+    float range = r->distanciaAtaque; 
+    
+    float swingWidth = r->width * 1.0f;   
+    float swingHeight = r->height * 1.0f; 
+
+    switch (r->facingDir) {
+        
+        // --- ESTE CASO SERÁ CORRIGIDO ---
+        case DIR_RIGHT:
+            hitbox = (Rectangle){ 
+                r->pos.x + r->width, 
+                r->pos.y - (swingHeight - r->height) / 2,
+                range/0.8, // <-- Garante que a DIREITA use o 'range'
+                swingHeight 
+            };
+            break;
+            
+        // --- ESTE CASO TAMBÉM SERÁ CORRIGIDO ---
+        case DIR_LEFT:
+            hitbox = (Rectangle){ 
+                r->pos.x - range, 
+                r->pos.y - (swingHeight - r->height) / 2,
+                range/0.8, // <-- Garante que a ESQUERDA use o 'range'
+                swingHeight 
+            };
+            break;
+            
+        // --- ESTES JÁ ESTAVAM FUNCIONANDO ---
+        case DIR_UP:
+            hitbox = (Rectangle){ 
+                r->pos.x - (swingWidth - r->width) / 2,
+                r->pos.y - range, 
+                swingWidth, 
+                range
+            };
+            break;
+            
+        case DIR_DOWN:
+        case DIR_IDLE:
+        default:
+            hitbox = (Rectangle){ 
+                r->pos.x - (swingWidth - r->width) / 2,
+                r->pos.y + r->height, 
+                swingWidth, 
+                range
+            };
+            break;
+    }
+    return hitbox;
 }
