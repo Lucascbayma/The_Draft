@@ -172,35 +172,32 @@ void UnloadRabisco(Rabisco *r){
 Rectangle GetRabiscoAttackHitbox(Rabisco *r) {
     Rectangle hitbox;
     
-    // Pega o valor de 'distanciaAtaque' que você definiu no InitRabisco
     float range = r->distanciaAtaque; 
     
-    float swingWidth = r->width * 1.0f;   
-    float swingHeight = r->height * 1.0f; 
+    float swingWidth = r->width * 0.3f;   
+    float swingHeight = r->height * 0.3f; 
 
     switch (r->facingDir) {
         
-        // --- ESTE CASO SERÁ CORRIGIDO ---
         case DIR_RIGHT:
             hitbox = (Rectangle){ 
                 r->pos.x + r->width, 
                 r->pos.y - (swingHeight - r->height) / 2,
-                range/0.8, // <-- Garante que a DIREITA use o 'range'
+                range/0.8, 
                 swingHeight 
             };
             break;
             
-        // --- ESTE CASO TAMBÉM SERÁ CORRIGIDO ---
+        
         case DIR_LEFT:
             hitbox = (Rectangle){ 
                 r->pos.x - range, 
                 r->pos.y - (swingHeight - r->height) / 2,
-                range/0.8, // <-- Garante que a ESQUERDA use o 'range'
+                range/0.8,
                 swingHeight 
             };
             break;
             
-        // --- ESTES JÁ ESTAVAM FUNCIONANDO ---
         case DIR_UP:
             hitbox = (Rectangle){ 
                 r->pos.x - (swingWidth - r->width) / 2,
