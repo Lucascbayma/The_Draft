@@ -28,6 +28,7 @@ typedef enum {
 int main() {
     InitWindow(0, 0, "The Draft");
     ToggleFullscreen();
+    InitAudioDevice(); 
 
     int screenW = GetScreenWidth();
     int screenH = GetScreenHeight();
@@ -44,7 +45,14 @@ int main() {
     
     const int tamanhoFonteTitulo = 30; 
    
-    Font fontTitulo = LoadFontEx("assets/PatrickHandSC-Regular.ttf", tamanhoFonteTitulo, NULL, 0);
+    Font fontTitulo = LoadFontEx("assets/PatrickHandSC-Regular.ttf", tamanhoFonteTitulo, NULL, 0); 
+
+    // --- ADICIONADO: Configuração da Música ---
+    Music music = LoadMusicStream("audio/music/the_draft_music.mp3");
+    music.looping = true;
+    float musicVolume = 0.5f; // <-- ADICIONADO: 0.0f (mudo) a 1.0f (máximo)
+    SetMusicVolume(music, musicVolume);
+    // --- FIM DA ADIÇÃO ---
 
     int frameAtual = 0;
     float tempoFrame = 0.0f;
@@ -89,6 +97,8 @@ int main() {
     camera.zoom = (zoomX < zoomY ? zoomX : zoomY) * 2.0f;
 
     while (!WindowShouldClose()) {
+        UpdateMusicStream(music); // <-- ADICIONADO: Atualiza o buffer da música
+
         BeginDrawing();
         ClearBackground(BLACK);
 
@@ -138,10 +148,25 @@ int main() {
 
             DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, alphaTransicao));
 
-            if (alphaTransicao >= 1.0f) estado = TELA_JOGO;
+            if (alphaTransicao >= 1.0f) {
+                estado = TELA_JOGO;
+                PlayMusicStream(music); // <-- ADICIONADO: Toca a música quando o jogo começa
+            }
         }
 
         else if (estado == TELA_JOGO) {
+            // Controles de Volume (use - e +) ---
+            if (IsKeyPressed(KEY_MINUS)) {
+                musicVolume -= 0.1f;
+                if (musicVolume < 0.0f) musicVolume = 0.0f;
+                SetMusicVolume(music, musicVolume);
+            }
+            if (IsKeyPressed(KEY_EQUAL)) { 
+                musicVolume += 0.1f;
+                if (musicVolume > 1.0f) musicVolume = 1.0f;
+                SetMusicVolume(music, musicVolume);
+            }
+
             bool rabiscoAtacou = UpdateRabisco(&rabisco, mapa.width, mapa.height,
                                                mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
 
@@ -233,12 +258,14 @@ int main() {
     }
 
     // Liberação de recursos
+    UnloadMusicStream(music); // Libera a música
     for (int i = 0; i < 4; i++) UnloadTexture(tituloFrames[i]);
     UnloadTexture(fundoPreto);
     UnloadTexture(texInimigo);
     UnloadTexture(mapa);
     UnloadFont(fontTitulo);
     UnloadRabisco(&rabisco); 
+    CloseAudioDevice(); 
     CloseWindow();
     return 0;
 }
