@@ -1,8 +1,7 @@
 #include "raylib.h"
-#include "rabisco.h" 
+#include "rabisco.h"
+#include "stdio.h"
 #include "raymath.h"
-#include <math.h>
-#include <stdio.h>
 
 typedef struct {
     Vector2 pos;
@@ -34,7 +33,6 @@ int main() {
     int screenH = GetScreenHeight();
     SetTargetFPS(60);
 
-    // --- TÍTULO ---
     Texture2D tituloFrames[4] = {
         LoadTexture("images/titulo1.png"),
         LoadTexture("images/titulo2.png"),
@@ -47,21 +45,18 @@ int main() {
    
     Font fontTitulo = LoadFontEx("assets/PatrickHandSC-Regular.ttf", tamanhoFonteTitulo, NULL, 0); 
 
-    // --- ADICIONADO: Configuração da Música ---
     Music music = LoadMusicStream("audio/music/the_draft_music.mp3");
     music.looping = true;
-    float musicVolume = 0.5f; // <-- ADICIONADO: 0.0f (mudo) a 1.0f (máximo)
+    float musicVolume = 0.5f; 
     SetMusicVolume(music, musicVolume);
-    // --- FIM DA ADIÇÃO ---
 
     int frameAtual = 0;
     float tempoFrame = 0.0f;
     const float duracaoFrame = 0.25f;
 
     EstadoJogo estado = TELA_TITULO;
-    float alphaTransicao = 0.0f; // fade do titulo
+    float alphaTransicao = 0.0f; 
 
-    // --- ELEMENTOS DO MAPA ---
     const int mapBorderTop = 45;
     const int mapBorderBottom = 120;
     const int mapBorderLeft = 100;
@@ -97,7 +92,7 @@ int main() {
     camera.zoom = (zoomX < zoomY ? zoomX : zoomY) * 2.0f;
 
     while (!WindowShouldClose()) {
-        UpdateMusicStream(music); // <-- ADICIONADO: Atualiza o buffer da música
+        UpdateMusicStream(music);
 
         BeginDrawing();
         ClearBackground(BLACK);
@@ -109,7 +104,6 @@ int main() {
                 frameAtual = (frameAtual + 1) % 4;
             }
 
-            // --- Ajusta imagem para preencher a tela ---
             Texture2D frame = tituloFrames[frameAtual];
             float scaleX = (float)screenW / frame.width;
             float scaleY = (float)screenH / frame.height;
@@ -118,7 +112,6 @@ int main() {
             float posY = (screenH - frame.height * scale) / 2;
             DrawTextureEx(frame, (Vector2){ posX, posY }, 0.0f, scale, WHITE);
 
-            // --- Texto centralizado ---
             const char *texto = "Press any button to start";
             Vector2 textSize = MeasureTextEx(fontTitulo, texto, tamanhoFonteTitulo, 5); 
             DrawTextEx(fontTitulo, texto,
@@ -133,7 +126,6 @@ int main() {
         }
 
         else if (estado == TELA_TRANSICAO) {
-            // Repete último frame do título
             Texture2D frame = tituloFrames[frameAtual];
             float scaleX = (float)screenW / frame.width;
             float scaleY = (float)screenH / frame.height;
@@ -142,7 +134,6 @@ int main() {
             float posY = (screenH - frame.height * scale) / 2;
             DrawTextureEx(frame, (Vector2){ posX, posY }, 0.0f, scale, WHITE);
 
-            // Fade suave
             alphaTransicao += GetFrameTime();
             if (alphaTransicao > 1.0f) alphaTransicao = 1.0f;
 
@@ -150,12 +141,11 @@ int main() {
 
             if (alphaTransicao >= 1.0f) {
                 estado = TELA_JOGO;
-                PlayMusicStream(music); // <-- ADICIONADO: Toca a música quando o jogo começa
+                PlayMusicStream(music); 
             }
         }
 
         else if (estado == TELA_JOGO) {
-            // Controles de Volume (use - e +) ---
             if (IsKeyPressed(KEY_MINUS)) {
                 musicVolume -= 0.1f;
                 if (musicVolume < 0.0f) musicVolume = 0.0f;
@@ -246,19 +236,27 @@ int main() {
             }
 
             int coinSize = 60;
-            int fontSize = 40;
+            int fontSize = 55;
+            float spacing = 0;
             int coinPosY = padding + heartSize + padding / 2;
+            int textPosX = padding + coinSize + 10;
+            int textPosY = coinPosY + (coinSize - fontSize) / 2;
             const char *coinText = TextFormat("%02d", rabisco.moedas);
             float coinScale = (float)coinSize / rabisco.coinIcon.width;
             DrawTextureEx(rabisco.coinIcon, (Vector2){ padding, coinPosY }, 0.0f, coinScale, WHITE);
-            DrawTextEx(rabisco.hudFont, coinText, (Vector2){ padding + coinSize + 10, coinPosY + 10 }, fontSize, 5, WHITE);
+            
+            DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX - 2, textPosY}, fontSize, spacing, BLACK);
+            DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX + 2, textPosY}, fontSize, spacing, BLACK);
+            DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY - 2}, fontSize, spacing, BLACK);
+            DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY + 2}, fontSize, spacing, BLACK);
+            
+            DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY}, fontSize, spacing, WHITE);
         }
 
         EndDrawing();
     }
 
-    // Liberação de recursos
-    UnloadMusicStream(music); // Libera a música
+    UnloadMusicStream(music); 
     for (int i = 0; i < 4; i++) UnloadTexture(tituloFrames[i]);
     UnloadTexture(fundoPreto);
     UnloadTexture(texInimigo);

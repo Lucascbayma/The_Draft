@@ -72,16 +72,31 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
     if (r->attackTimer > 0) r->attackTimer -= GetFrameTime();
     if (r->attackDurationTimer > 0) r->attackDurationTimer -= GetFrameTime();
 
-    if (IsKeyPressed(KEY_SPACE) && r->attackTimer <= 0) {
+    int attackKey = 0;
+    if (IsKeyPressed(KEY_UP)) attackKey = KEY_UP;
+    else if (IsKeyPressed(KEY_DOWN)) attackKey = KEY_DOWN;
+    else if (IsKeyPressed(KEY_LEFT)) attackKey = KEY_LEFT;
+    else if (IsKeyPressed(KEY_RIGHT)) attackKey = KEY_RIGHT;
+
+    if (r->attackTimer <= 0 && attackKey != 0) 
+    {
         r->attackTimer = r->velAtaque;
         r->attackDurationTimer = r->attackDuration;
         attackJustStarted = true;
+
+        switch (attackKey) {
+            case KEY_UP: r->facingDir = DIR_UP; break;
+            case KEY_DOWN: r->facingDir = DIR_DOWN; break;
+            case KEY_LEFT: r->facingDir = DIR_LEFT; break;
+            case KEY_RIGHT: r->facingDir = DIR_RIGHT; break;
+            default: break; 
+        }
     }
 
-    if (IsKeyDown(KEY_RIGHT)) move.x += 1;
-    if (IsKeyDown(KEY_LEFT))  move.x -= 1;
-    if (IsKeyDown(KEY_UP))    move.y -= 1;
-    if (IsKeyDown(KEY_DOWN))  move.y += 1;
+    if (IsKeyDown(KEY_D)) move.x += 1;
+    if (IsKeyDown(KEY_A))  move.x -= 1;
+    if (IsKeyDown(KEY_W))    move.y -= 1;
+    if (IsKeyDown(KEY_S))  move.y += 1;
 
     float len = sqrtf(move.x * move.x + move.y * move.y);
     bool isMoving = (len > 0);
@@ -111,8 +126,11 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
         }else{
             lastDir = (move.y < 0) ? DIR_UP : DIR_DOWN;
         }
-        r->facingDir = lastDir;
-    }else{
+        
+        if (!attackJustStarted) {
+             r->facingDir = lastDir;
+        }
+    }else if (!attackJustStarted){
         lastDir = DIR_IDLE;
     }
 
