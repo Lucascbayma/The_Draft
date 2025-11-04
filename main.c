@@ -42,7 +42,6 @@ int main() {
     Texture2D fundoPreto = LoadTexture("images/fundo_preto.png");
     
     const int tamanhoFonteTitulo = 30; 
-   
     Font fontTitulo = LoadFontEx("assets/PatrickHandSC-Regular.ttf", tamanhoFonteTitulo, NULL, 0); 
 
     Music music = LoadMusicStream("audio/music/the_draft_music.mp3");
@@ -115,8 +114,8 @@ int main() {
             const char *texto = "Press any button to start";
             Vector2 textSize = MeasureTextEx(fontTitulo, texto, tamanhoFonteTitulo, 5); 
             DrawTextEx(fontTitulo, texto,
-                       (Vector2){ (screenW - textSize.x) / 2.55, screenH - 80 }, 
-                       tamanhoFonteTitulo, 9, BLACK);
+                       (Vector2){ (screenW - textSize.x) / 3.1f, screenH - 100 }, 
+                       tamanhoFonteTitulo, 9, (Color){150,150,150,255});
 
             if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ||
                 GetKeyPressed() != 0) {

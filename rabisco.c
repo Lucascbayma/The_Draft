@@ -6,15 +6,21 @@
 #define FRAME_RIGHT 8
 #define FRAME_LEFT 8
 #define FRAME_UP 9
+#define FRAME_ATTACK 8
 
 static Texture2D idle;
 static Texture2D walkRight[FRAME_RIGHT];
 static Texture2D walkLeft[FRAME_LEFT];
 static Texture2D walkUp[FRAME_UP];
+static Texture2D attackFrames[FRAME_ATTACK];
 
 static int frame = 0;
 static float frameTime = 0;
 static float frameDelay = 1.0f / 8.0f;
+
+static int attackFrame = 0;
+static float attackFrameTime = 0;
+static float attackFrameDelay = 1.0f / 15.0f; // 15 FPS
 
 static PlayerDirection lastDir = DIR_IDLE;
 
@@ -56,6 +62,13 @@ void InitRabisco(Rabisco *r, float x, float y) {
         walkUp[i] = LoadTexture(filename);
     }
 
+    // Carregando os frames de ataque
+    for (int i = 0; i < FRAME_ATTACK; i++) {
+        char filename[64];
+        sprintf(filename, "images/ataque%d_up.png", i + 1);
+        attackFrames[i] = LoadTexture(filename);
+    }
+
     r->heartFull = LoadTexture("images/heart.png");
     r->heartBroken = LoadTexture("images/heart_broken.png");
     r->coinIcon = LoadTexture("images/moeda.png");
@@ -95,7 +108,7 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
 
     if (IsKeyDown(KEY_D)) move.x += 1;
     if (IsKeyDown(KEY_A))  move.x -= 1;
-    if (IsKeyDown(KEY_W))    move.y -= 1;
+    if (IsKeyDown(KEY_W))  move.y -= 1;
     if (IsKeyDown(KEY_S))  move.y += 1;
 
     float len = sqrtf(move.x * move.x + move.y * move.y);
@@ -149,6 +162,17 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
     } else {
         frame = 0;
     }
+
+    if (r->attackDurationTimer > 0) {
+        attackFrameTime += GetFrameTime();
+        if (attackFrameTime >= attackFrameDelay) {
+            attackFrame++;
+            attackFrameTime = 0;
+        }
+        attackFrame %= FRAME_ATTACK;
+    } else {
+        attackFrame = 0;
+    }
     
     return attackJustStarted;
 }
@@ -170,8 +194,42 @@ void DrawRabisco(Rabisco *r){
     DrawTextureEx(currentFrame, r->pos, 0.0f, r->escala, WHITE);
 
     if (r->attackDurationTimer > 0) {
-        Rectangle attackBox = GetRabiscoAttackHitbox(r);
-        DrawRectangleRec(attackBox, (Color){255, 255, 0, 100}); 
+        Texture2D atk = attackFrames[attackFrame];
+        Vector2 pos = r->pos;
+        float scale = r->escala;
+
+        // Ajustes de origem para que o sprite do ataque fique posicionado de forma coerente.
+        // melhor ajustar o offset pra ficar certinho no proximo commit
+        float offsetX = 5;
+        float offsetY = 5;
+
+        float rotation = 0.0f;
+        bool flip = false;
+
+        switch (r->facingDir) {
+            case DIR_UP:
+                rotation = -90.0f;
+                offsetY = - (atk.height * scale) / 2;
+                break;
+            case DIR_DOWN:
+                rotation = 90.0f;
+                offsetY = (atk.height * scale) / 2;
+                break;
+            case DIR_LEFT:
+                flip = true;
+                offsetX = - (atk.width * scale) / 2;
+                break;
+            case DIR_RIGHT:
+            default:
+                offsetX = (atk.width * scale) / 2;
+                break;
+        }
+
+        Rectangle src = { 0, 0, atk.width * (flip ? -1 : 1), atk.height };
+        Rectangle dest = { pos.x + offsetX, pos.y + offsetY, atk.width * scale, atk.height * scale };
+        Vector2 origin = { 0, 0 };
+
+        DrawTexturePro(atk, src, dest, origin, rotation, WHITE);
     }
 }
 
@@ -180,6 +238,7 @@ void UnloadRabisco(Rabisco *r){
     for(int i = 0; i < FRAME_RIGHT; i++) UnloadTexture(walkRight[i]);
     for(int i = 0; i < FRAME_LEFT; i++)  UnloadTexture(walkLeft[i]);
     for(int i = 0; i < FRAME_UP; i++)    UnloadTexture(walkUp[i]);
+    for(int i = 0; i < FRAME_ATTACK; i++) UnloadTexture(attackFrames[i]);
 
     UnloadTexture(r->heartFull);
     UnloadTexture(r->heartBroken);
@@ -191,12 +250,10 @@ Rectangle GetRabiscoAttackHitbox(Rabisco *r) {
     Rectangle hitbox;
     
     float range = r->distanciaAtaque; 
-    
     float swingWidth = r->width * 0.3f;   
     float swingHeight = r->height * 0.3f; 
 
     switch (r->facingDir) {
-        
         case DIR_RIGHT:
             hitbox = (Rectangle){ 
                 r->pos.x + r->width, 
@@ -205,8 +262,6 @@ Rectangle GetRabiscoAttackHitbox(Rabisco *r) {
                 swingHeight 
             };
             break;
-            
-        
         case DIR_LEFT:
             hitbox = (Rectangle){ 
                 r->pos.x - range, 
@@ -215,7 +270,6 @@ Rectangle GetRabiscoAttackHitbox(Rabisco *r) {
                 swingHeight 
             };
             break;
-            
         case DIR_UP:
             hitbox = (Rectangle){ 
                 r->pos.x - (swingWidth - r->width) / 2,
@@ -224,7 +278,6 @@ Rectangle GetRabiscoAttackHitbox(Rabisco *r) {
                 range
             };
             break;
-            
         case DIR_DOWN:
         case DIR_IDLE:
         default:
