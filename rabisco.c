@@ -210,23 +210,27 @@ void DrawRabisco(Rabisco *r){
             case DIR_UP:
                 rotation = 0.0f;
                 flip = false;
-                offsetY = - (atk.height * scale) / 2;
+                offsetX = 0;
+                offsetY = -20;
                 break;
             case DIR_DOWN:
                 rotation = 180.0f;
-                flip = true;
-                offsetY = (atk.height * scale) * 3.25;
+                flip = false;
+                offsetX = 82.5;
+                offsetY = 138;
                 break;
             case DIR_LEFT:
                 rotation = -90.0f;
                 flip = false;
-                offsetX = - (atk.width * scale) / 2;
+                offsetX = -20;
+                offsetY = 105;
                 break;
             case DIR_RIGHT:
             default:
                 rotation = 90.0f;
                 flip = true;
-                offsetX = (atk.width * scale) / 2;
+                offsetX = 108.5;
+                offsetY = 18.75;
                 break;
         }
 
