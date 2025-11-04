@@ -20,7 +20,7 @@ static float frameDelay = 1.0f / 8.0f;
 
 static int attackFrame = 0;
 static float attackFrameTime = 0;
-static float attackFrameDelay = 1.0f / 15.0f; // 15 FPS
+static float attackFrameDelay = 1.0f / 15.0f;
 
 static PlayerDirection lastDir = DIR_IDLE;
 
@@ -62,7 +62,6 @@ void InitRabisco(Rabisco *r, float x, float y) {
         walkUp[i] = LoadTexture(filename);
     }
 
-    // Carregando os frames de ataque
     for (int i = 0; i < FRAME_ATTACK; i++) {
         char filename[64];
         sprintf(filename, "images/ataque%d_up.png", i + 1);
@@ -94,8 +93,9 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
     if (r->attackTimer <= 0 && attackKey != 0) 
     {
         r->attackTimer = r->velAtaque;
-        r->attackDurationTimer = r->attackDuration;
+        r->attackDurationTimer = (float)FRAME_ATTACK * attackFrameDelay;
         attackJustStarted = true;
+        attackFrame = 0;
 
         switch (attackKey) {
             case KEY_UP: r->facingDir = DIR_UP; break;
@@ -140,10 +140,10 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
             lastDir = (move.y < 0) ? DIR_UP : DIR_DOWN;
         }
         
-        if (!attackJustStarted) {
+        if (r->attackDurationTimer <= 0) { 
              r->facingDir = lastDir;
         }
-    }else if (!attackJustStarted){
+    } else if (r->attackDurationTimer <= 0){
         lastDir = DIR_IDLE;
     }
 
@@ -166,10 +166,11 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
     if (r->attackDurationTimer > 0) {
         attackFrameTime += GetFrameTime();
         if (attackFrameTime >= attackFrameDelay) {
-            attackFrame++;
+            if (attackFrame < FRAME_ATTACK - 1) {
+                attackFrame++;
+            }
             attackFrameTime = 0;
         }
-        attackFrame %= FRAME_ATTACK;
     } else {
         attackFrame = 0;
     }
@@ -179,18 +180,28 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
 
 void DrawRabisco(Rabisco *r){
     Texture2D currentFrame = idle;
-
-    if(lastDir == DIR_UP)
-        currentFrame = walkUp[frame];
-    else if(lastDir == DIR_RIGHT)
-        currentFrame = walkRight[frame];
-    else if(lastDir == DIR_LEFT)
-        currentFrame = walkLeft[frame];
-    else if(lastDir == DIR_DOWN)
-        currentFrame = idle;
-    else
-        currentFrame = idle;
-
+    bool isMoving = (lastDir != DIR_IDLE);
+    
+    if (isMoving) {
+        switch (r->facingDir) {
+            case DIR_UP:    currentFrame = walkUp[frame % FRAME_UP]; break;
+            case DIR_LEFT:  currentFrame = walkLeft[frame % FRAME_LEFT]; break;
+            case DIR_RIGHT: currentFrame = walkRight[frame % FRAME_RIGHT]; break;
+            case DIR_DOWN:
+            case DIR_IDLE:
+            default:        currentFrame = idle;
+        }
+    } else {
+        switch (r->facingDir) {
+            case DIR_UP:    currentFrame = walkUp[0]; break;
+            case DIR_LEFT:  currentFrame = walkLeft[0]; break;
+            case DIR_RIGHT: currentFrame = walkRight[0]; break;
+            case DIR_DOWN:
+            case DIR_IDLE:
+            default:        currentFrame = idle;
+        }
+    }
+    
     DrawTextureEx(currentFrame, r->pos, 0.0f, r->escala, WHITE);
 
     if (r->attackDurationTimer > 0) {
@@ -198,8 +209,6 @@ void DrawRabisco(Rabisco *r){
         Vector2 pos = r->pos;
         float scale = r->escala;
 
-        // Ajustes de origem para que o sprite do ataque fique posicionado de forma coerente.
-        // melhor ajustar o offset pra ficar certinho no proximo commit
         float offsetX = 5;
         float offsetY = 5;
 
@@ -267,7 +276,7 @@ Rectangle GetRabiscoAttackHitbox(Rabisco *r) {
             hitbox = (Rectangle){ 
                 r->pos.x + r->width, 
                 r->pos.y - (swingHeight - r->height) / 2,
-                range/0.8, 
+                range,
                 swingHeight 
             };
             break;
@@ -275,7 +284,7 @@ Rectangle GetRabiscoAttackHitbox(Rabisco *r) {
             hitbox = (Rectangle){ 
                 r->pos.x - range, 
                 r->pos.y - (swingHeight - r->height) / 2,
-                range/0.8,
+                range,
                 swingHeight 
             };
             break;
