@@ -13,6 +13,7 @@ typedef struct {
     int moedas;
     int dano;
     float velocidade;
+    float alcance;
     float distanciaAtaque;
     float velAtaque;
     float width;
@@ -26,6 +27,9 @@ typedef struct {
     Texture2D heartBroken;
     Texture2D coinIcon;
     Font hudFont;
+    Texture2D iconVel;
+    Texture2D iconDamage;
+    Texture2D iconRange;
     
 } Rabisco;
 

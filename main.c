@@ -3,7 +3,7 @@
 #include "stdio.h"
 #include "raymath.h"
 
-typedef struct {
+typedef struct{
     Vector2 pos;
     float escala;
     int vida;
@@ -63,7 +63,8 @@ int main() {
 
     Texture2D mapa = LoadTexture("images/mapa.png");
     Rabisco rabisco;
-    InitRabisco(&rabisco, mapa.width / 2.0f, mapa.height / 2.0f); 
+    InitRabisco(&rabisco, mapa.width / 2.0f, mapa.height / 2.0f);
+    rabisco.alcance = 1.5f; 
 
     Texture2D texInimigo = LoadTexture("images/idle.png");
     InimigoTeste inimigos[MAX_INIMIGOS_TESTE];
@@ -254,18 +255,23 @@ int main() {
             DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY + 2}, fontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY}, fontSize, spacing, WHITE);
 
-            int statusFontSize = 50;
-            int statusY = coinPosY + coinSize + (padding*20);
-            int lineHeight = statusFontSize + 10;
+            int statusFontSize = 60; 
+            int iconStatusSize = 70; 
+            float iconOffset = 5; 
+            int lineHeight = statusFontSize + 10; 
             
-            const char* damageLabel = "DANO:";
+            int statusGap = 80; 
+            
+            int statusY = coinPosY + coinSize + statusGap; 
+            
             const char* damageValue = TextFormat("%d", rabisco.dano);
-            Vector2 damageLabelSize = MeasureTextEx(rabisco.hudFont, damageLabel, statusFontSize, spacing);
-            Vector2 damageValuePos = (Vector2){ padding + damageLabelSize.x + 10, statusY };
+            
+            Vector2 damageIconPos = (Vector2){ padding, statusY }; 
+            Vector2 damageValuePos = (Vector2){ padding + iconStatusSize + 10, statusY };
 
-            DrawTextEx(rabisco.hudFont, damageLabel, 
-                       (Vector2){ padding, statusY }, 
-                       statusFontSize, spacing, RAYWHITE);
+            DrawTextureEx(rabisco.iconDamage, 
+                          (Vector2){ damageIconPos.x, damageIconPos.y + iconOffset }, 
+                          0.0f, (float)iconStatusSize / rabisco.iconDamage.width, WHITE); 
 
             DrawTextEx(rabisco.hudFont, damageValue, (Vector2){damageValuePos.x - 2, damageValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, damageValue, (Vector2){damageValuePos.x + 2, damageValuePos.y}, statusFontSize, spacing, BLACK);
@@ -273,25 +279,45 @@ int main() {
             DrawTextEx(rabisco.hudFont, damageValue, (Vector2){damageValuePos.x, damageValuePos.y + 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, damageValue, 
                        damageValuePos, 
-                       statusFontSize, spacing, RED);
+                       statusFontSize, spacing, WHITE);
             
-            const char* speedLabel = "VELOCIDADE:";
             const char* speedValue = TextFormat("%.1f", rabisco.velocidade);
-            Vector2 speedLabelSize = MeasureTextEx(rabisco.hudFont, speedLabel, statusFontSize, spacing);
 
             int speedY = statusY + lineHeight;
-            Vector2 speedValuePos = (Vector2){ padding + speedLabelSize.x + 10, speedY };
             
-            DrawTextEx(rabisco.hudFont, speedLabel, 
-                       (Vector2){ padding, speedY }, 
-                       statusFontSize, spacing, RAYWHITE);
+            Vector2 speedIconPos = (Vector2){ padding, speedY };
+            Vector2 speedValuePos = (Vector2){ padding + iconStatusSize + 10, speedY };
+            
+            DrawTextureEx(rabisco.iconVel, 
+                          (Vector2){ speedIconPos.x, speedIconPos.y + iconOffset }, 
+                          0.0f, (float)iconStatusSize / rabisco.iconVel.width, WHITE);
+                       
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x - 2, speedValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x + 2, speedValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x, speedValuePos.y - 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x, speedValuePos.y + 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, 
                        speedValuePos, 
-                       statusFontSize, spacing, GREEN);
+                       statusFontSize, spacing, WHITE);
+
+            const char* rangeValue = TextFormat("%.1f", rabisco.alcance);
+            
+            int rangeY = speedY + lineHeight;
+            
+            Vector2 rangeIconPos = (Vector2){ padding, rangeY };
+            Vector2 rangeValuePos = (Vector2){ padding + iconStatusSize + 10, rangeY };
+            
+            DrawTextureEx(rabisco.iconRange,
+                          (Vector2){ rangeIconPos.x, rangeIconPos.y + iconOffset }, 
+                          0.0f, (float)iconStatusSize / rabisco.iconRange.width, WHITE);
+                       
+            DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x - 2, rangeValuePos.y}, statusFontSize, spacing, BLACK);
+            DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x + 2, rangeValuePos.y}, statusFontSize, spacing, BLACK);
+            DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x, rangeValuePos.y - 2}, statusFontSize, spacing, BLACK);
+            DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x, rangeValuePos.y + 2}, statusFontSize, spacing, BLACK);
+            DrawTextEx(rabisco.hudFont, rangeValue, 
+                       rangeValuePos, 
+                       statusFontSize, spacing, WHITE);
         }
 
         EndDrawing();

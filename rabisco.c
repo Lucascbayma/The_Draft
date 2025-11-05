@@ -36,6 +36,7 @@ void InitRabisco(Rabisco *r, float x, float y) {
     r->velocidade = 4.0f;
     r->distanciaAtaque = 30.0f;
     r->velAtaque = 0.8f;
+    r->alcance = 1.5f;
 
     idle = LoadTexture("images/idle.png");
     float heightFactor = 0.8f;
@@ -71,6 +72,9 @@ void InitRabisco(Rabisco *r, float x, float y) {
     r->heartFull = LoadTexture("images/heart.png");
     r->heartBroken = LoadTexture("images/heart_broken.png");
     r->coinIcon = LoadTexture("images/moeda.png");
+    r->iconDamage = LoadTexture("images/hud_dano.png");
+    r->iconVel = LoadTexture("images/hud_velocidade.png");
+    r->iconRange = LoadTexture("images/hud_alcance.png"); 
     r->hudFont = LoadFontEx("assets/PatrickHandSC-Regular.ttf", 40, 0, 0); 
 }
 
@@ -276,6 +280,8 @@ void UnloadRabisco(Rabisco *r){
     UnloadTexture(r->heartFull);
     UnloadTexture(r->heartBroken);
     UnloadTexture(r->coinIcon);
+    UnloadTexture(r->iconDamage);
+    UnloadTexture(r->iconVel);
     UnloadFont(r->hudFont);
 }
 
