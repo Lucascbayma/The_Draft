@@ -38,9 +38,9 @@ void InitRabisco(Rabisco *r, float x, float y) {
     r->velAtaque = 0.8f;
 
     idle = LoadTexture("images/idle.png");
-
+    float heightFactor = 0.8f;
     r->width = idle.width * r->escala;
-    r->height = idle.height * r->escala;
+    r->height = (idle.height * r->escala) * heightFactor;
     r->facingDir = DIR_DOWN;
     r->attackTimer = 0.0f;
     r->attackDuration = 0.25f;
@@ -202,12 +202,21 @@ void DrawRabisco(Rabisco *r){
         }
     }
     
-    DrawTextureEx(currentFrame, r->pos, 0.0f, r->escala, WHITE);
+    
+    Rectangle srcRectRabisco = { 0, 0, (float)currentFrame.width, (float)currentFrame.height };
+    Rectangle destRectRabisco = { r->pos.x, r->pos.y, r->width, r->height };
+    Vector2 originRabisco = { 0, 0 };
+    DrawTexturePro(currentFrame, srcRectRabisco, destRectRabisco, originRabisco, 0.0f, WHITE);
 
+
+  
     if (r->attackDurationTimer > 0) {
         Texture2D atk = attackFrames[attackFrame];
         Vector2 pos = r->pos;
-        float scale = r->escala;
+        
+        float heightFactor = r->height / (idle.height * r->escala); 
+        float atkScaledW = atk.width * r->escala;
+        float atkScaledH = (atk.height * r->escala) * heightFactor; 
 
         float offsetX = 5;
         float offsetY = 5;
@@ -219,32 +228,38 @@ void DrawRabisco(Rabisco *r){
             case DIR_UP:
                 rotation = 0.0f;
                 flip = false;
-                offsetX = 0;
-                offsetY = -20;
+                offsetX = (r->width / 2) - (atkScaledW / 2); 
+                offsetY = -atkScaledH+20.0f; 
                 break;
             case DIR_DOWN:
                 rotation = 180.0f;
                 flip = false;
-                offsetX = 82.5;
-                offsetY = 138;
+                offsetX = (r->width / 2) + (atkScaledW / 2); 
+                offsetY = r->height + atkScaledH-20.0f; 
                 break;
             case DIR_LEFT:
                 rotation = -90.0f;
                 flip = false;
-                offsetX = -20;
-                offsetY = 105;
+                offsetX = -(atkScaledH / 2) + (r->width / 2)-60.0f;
+                offsetY = (r->height / 2) + (atkScaledW / 2)-20.0f; 
                 break;
             case DIR_RIGHT:
             default:
                 rotation = 90.0f;
                 flip = true;
-                offsetX = 108.5;
-                offsetY = 18.75;
+                offsetX = (r->width / 2) + (atkScaledH / 2)+60.0f;
+                offsetY = (r->height / 2) - (atkScaledW / 2)+20.0f; 
                 break;
+        }
+        
+        if (r->facingDir == DIR_LEFT || r->facingDir == DIR_RIGHT) {
+            float temp = atkScaledW;
+            atkScaledW = atkScaledH;
+            atkScaledH = temp;
         }
 
         Rectangle src = { 0, 0, atk.width * (flip ? -1 : 1), atk.height };
-        Rectangle dest = { pos.x + offsetX, pos.y + offsetY, atk.width * scale, atk.height * scale };
+        Rectangle dest = { pos.x + offsetX, pos.y + offsetY, atkScaledW, atkScaledH };
         Vector2 origin = { 0, 0 };
 
         DrawTexturePro(atk, src, dest, origin, rotation, WHITE);
