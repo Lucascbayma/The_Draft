@@ -1,4 +1,4 @@
-<h1 align="center">🖊️ The Draft: A Aventura de Rabisco
+<h1 align="center">🖊️ The Draft
 </h1>
 
 ## 📖 Sobre o Jogo
