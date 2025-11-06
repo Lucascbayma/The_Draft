@@ -1,22 +1,10 @@
 #include "raylib.h"
 #include "rabisco.h"
+#include "inimigos.h"
 #include "stdio.h"
 #include "raymath.h"
 
-typedef struct{
-    Vector2 pos;
-    float escala;
-    int vida;
-    int maxVida;
-    int dano;
-    float velocidade;
-    Rectangle bounds;
-    bool active;
-    Color tint;
-    Texture2D textura;
-} InimigoTeste;
-
-#define MAX_INIMIGOS_TESTE 3
+#define MAX_INIMIGOS 3
 
 typedef enum {
     TELA_TITULO,
@@ -44,10 +32,11 @@ int main() {
     const int tamanhoFonteTitulo = 30; 
     Font fontTitulo = LoadFontEx("assets/PatrickHandSC-Regular.ttf", tamanhoFonteTitulo, NULL, 0); 
 
-    Music music = LoadMusicStream("audio/music/the_draft_music.mp3");
+    Music music = LoadMusicStream("audio/music/the_draft_music.ogg");
     music.looping = true;
     float musicVolume = 0.5f; 
     SetMusicVolume(music, musicVolume);
+    PlayMusicStream(music);
 
     int frameAtual = 0;
     float tempoFrame = 0.0f;
@@ -64,22 +53,12 @@ int main() {
     Texture2D mapa = LoadTexture("images/mapa.png");
     Rabisco rabisco;
     InitRabisco(&rabisco, mapa.width / 2.0f, mapa.height / 2.0f);
-    rabisco.alcance = 1.5f; 
 
-    Texture2D texInimigo = LoadTexture("images/idle.png");
-    InimigoTeste inimigos[MAX_INIMIGOS_TESTE];
+    InitInimigoAssets(); 
+    Inimigo inimigos[MAX_INIMIGOS]; 
 
-    for (int i = 0; i < MAX_INIMIGOS_TESTE; i++) {
-        inimigos[i].pos = (Vector2){ (float)GetRandomValue(200, mapa.width - 200), (float)GetRandomValue(200, mapa.height - 200) };
-        inimigos[i].escala = 0.10f;
-        inimigos[i].maxVida = 3;
-        inimigos[i].vida = inimigos[i].maxVida;
-        inimigos[i].dano = 1;
-        inimigos[i].velocidade = 2.0f;
-        inimigos[i].active = true;
-        inimigos[i].tint = WHITE;
-        inimigos[i].textura = texInimigo;
-        inimigos[i].bounds = (Rectangle){ inimigos[i].pos.x, inimigos[i].pos.y, texInimigo.width * inimigos[i].escala, texInimigo.height * inimigos[i].escala };
+    for (int i = 0; i < MAX_INIMIGOS; i++) {
+        SpawnInimigo(&inimigos[i], TIPO_PADRAO, (Vector2){ (float)GetRandomValue(200, mapa.width - 200), (float)GetRandomValue(200, mapa.height - 200) });
     }
 
     Camera2D camera = { 0 };
@@ -141,7 +120,6 @@ int main() {
 
             if (alphaTransicao >= 1.0f) {
                 estado = TELA_JOGO;
-                PlayMusicStream(music); 
             }
         }
 
@@ -160,40 +138,24 @@ int main() {
             bool rabiscoAtacou = UpdateRabisco(&rabisco, mapa.width, mapa.height,
                                                mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
 
-            for (int i = 0; i < MAX_INIMIGOS_TESTE; i++) {
-                InimigoTeste *e = &inimigos[i];
-                if (!e->active) continue;
-                if (e->vida <= 0) {
-                    e->active = false;
-                    rabisco.moedas++;
-                    continue;
-                }
-
-                float dist = Vector2Distance(e->pos, rabisco.pos);
-                float chaseRadius = 400.0f;
-                float attackDist = e->bounds.width;
-
-                if (dist < chaseRadius && dist > attackDist) {
-                    Vector2 move = Vector2Normalize(Vector2Subtract(rabisco.pos, e->pos));
-                    e->pos.x += move.x * e->velocidade;
-                    e->pos.y += move.y * e->velocidade;
-                    e->bounds.x = e->pos.x;
-                    e->bounds.y = e->pos.y;
-                }
+            for (int i = 0; i < MAX_INIMIGOS; i++) {
+                UpdateInimigo(&inimigos[i], &rabisco, mapa.width, mapa.height,
+                              mapBorderTop, mapBorderBottom, 
+                              mapBorderLeft, mapBorderRight);
             }
 
             if (rabiscoAtacou) {
                 Rectangle attackBox = GetRabiscoAttackHitbox(&rabisco);
-                for (int i = 0; i < MAX_INIMIGOS_TESTE; i++) {
-                    InimigoTeste *e = &inimigos[i];
-                    if (e->active && CheckCollisionRecs(attackBox, e->bounds)) {
+                for (int i = 0; i < MAX_INIMIGOS; i++) {
+                    Inimigo *e = &inimigos[i];
+                    if (e->active && CheckCollisionRecs(attackBox, GetInimigoHitbox(e))) {
                         e->vida -= rabisco.dano;
                         e->tint = RED;
                     }
                 }
             }
 
-            for (int i = 0; i < MAX_INIMIGOS_TESTE; i++) {
+            for (int i = 0; i < MAX_INIMIGOS; i++) {
                 if (inimigos[i].tint.r == RED.r) inimigos[i].tint = WHITE;
             }
 
@@ -211,16 +173,9 @@ int main() {
 
             BeginMode2D(camera);
                 DrawTexture(mapa, 0, 0, WHITE);
-                for (int i = 0; i < MAX_INIMIGOS_TESTE; i++) {
-                    InimigoTeste *e = &inimigos[i];
-                    if (e->active) {
-                        DrawTextureEx(e->textura, e->pos, 0.0f, e->escala, e->tint);
-                        float healthPercent = (float)e->vida / (float)e->maxVida;
-                        if (healthPercent < 1.0f) {
-                            DrawRectangle(e->pos.x, e->pos.y - 10, e->bounds.width, 5, RED);
-                            DrawRectangle(e->pos.x, e->pos.y - 10, e->bounds.width * healthPercent, 5, GREEN);
-                        }
-                    }
+                
+                for (int i = 0; i < MAX_INIMIGOS; i++) {
+                    DrawInimigo(&inimigos[i]);
                 }
                 DrawRabisco(&rabisco);
             EndMode2D();
@@ -228,7 +183,6 @@ int main() {
             int padding = 20;
             int heartSize = 70;
 
-            // 1. HUD de Vida
             for (int i = 0; i < rabisco.maxVida; i++) {
                 Texture2D heartTexture = (i < rabisco.vida) ? rabisco.heartFull : rabisco.heartBroken;
                 if (heartTexture.width > 0) {
@@ -237,7 +191,6 @@ int main() {
                 }
             }
             
-            // 2. HUD de Moedas
             int coinSize = 60;
             int fontSize = 55;
             float spacing = 0;
@@ -291,7 +244,7 @@ int main() {
             DrawTextureEx(rabisco.iconVel, 
                           (Vector2){ speedIconPos.x, speedIconPos.y + iconOffset }, 
                           0.0f, (float)iconStatusSize / rabisco.iconVel.width, WHITE);
-                       
+                          
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x - 2, speedValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x + 2, speedValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x, speedValuePos.y - 2}, statusFontSize, spacing, BLACK);
@@ -310,14 +263,12 @@ int main() {
             DrawTextureEx(rabisco.iconRange,
                           (Vector2){ rangeIconPos.x, rangeIconPos.y + iconOffset }, 
                           0.0f, (float)iconStatusSize / rabisco.iconRange.width, WHITE);
-                       
+                          
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x - 2, rangeValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x + 2, rangeValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x, rangeValuePos.y - 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x, rangeValuePos.y + 2}, statusFontSize, spacing, BLACK);
-            DrawTextEx(rabisco.hudFont, rangeValue, 
-                       rangeValuePos, 
-                       statusFontSize, spacing, WHITE);
+            DrawTextEx(rabisco.hudFont, rangeValue, rangeValuePos, statusFontSize, spacing, WHITE);
         }
 
         EndDrawing();
@@ -326,7 +277,9 @@ int main() {
     UnloadMusicStream(music); 
     for (int i = 0; i < 4; i++) UnloadTexture(tituloFrames[i]);
     UnloadTexture(fundoPreto);
-    UnloadTexture(texInimigo);
+    
+    UnloadInimigoAssets(); 
+    
     UnloadTexture(mapa);
     UnloadFont(fontTitulo);
     UnloadRabisco(&rabisco); 

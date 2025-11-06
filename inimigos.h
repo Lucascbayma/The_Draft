@@ -27,20 +27,19 @@ typedef struct {
     Color tint;
     
     InimigoType tipo;
-    Texture2D textura;
+    
+    PlayerDirection facingDir;
+    int frame;
+    float frameTime;
+    float frameDelay;
     
 } Inimigo;
 
 void InitInimigoAssets(void);
-
 void UnloadInimigoAssets(void);
-
 void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos);
-
 void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH, int borderTop, int borderBottom, int borderLeft, int borderRight);
-
 void DrawInimigo(Inimigo *e);
-
 Rectangle GetInimigoHitbox(Inimigo *e);
 
 #endif
