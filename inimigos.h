@@ -33,6 +33,8 @@ typedef struct {
     float frameTime;
     float frameDelay;
     
+    int frameCount;
+    
 } Inimigo;
 
 void InitInimigoAssets(void);

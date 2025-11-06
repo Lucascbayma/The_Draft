@@ -3,22 +3,28 @@
 #include <math.h>
 #include <stdio.h>
 
-#define INIMIGO_FRAME_COUNT 8
+#define FRAME_COUNT_PADRAO 8
+#define FRAME_COUNT_TANQUE 8
+#define FRAME_COUNT_ARANHA 4
 
 static Texture2D texPadraoIdle;
-static Texture2D texPadraoLeft[INIMIGO_FRAME_COUNT];
-static Texture2D texPadraoRight[INIMIGO_FRAME_COUNT];
+static Texture2D texPadraoLeft[FRAME_COUNT_PADRAO];
+static Texture2D texPadraoRight[FRAME_COUNT_PADRAO];
 
 static Texture2D texTanqueIdle;
-static Texture2D texTanqueLeft[INIMIGO_FRAME_COUNT];
-static Texture2D texTanqueRight[INIMIGO_FRAME_COUNT];
+static Texture2D texTanqueLeft[FRAME_COUNT_TANQUE];
+static Texture2D texTanqueRight[FRAME_COUNT_TANQUE];
 
-static Texture2D texAranha;
+static Texture2D texAranhaIdle;
+static Texture2D texAranhaLeft[FRAME_COUNT_ARANHA];
+static Texture2D texAranhaRight[FRAME_COUNT_ARANHA];
+
 static Texture2D texAtirador;
+
 
 void InitInimigoAssets(void) {
     texPadraoIdle = LoadTexture("images/inimigo_base_direita1.png");
-    for (int i = 0; i < INIMIGO_FRAME_COUNT; i++) {
+    for (int i = 0; i < FRAME_COUNT_PADRAO; i++) {
         char f[64];
         sprintf(f, "images/inimigo_base_direita%d.png", i+1);
         texPadraoRight[i] = LoadTexture(f);
@@ -27,7 +33,7 @@ void InitInimigoAssets(void) {
     }
     
     texTanqueIdle = LoadTexture("images/inimigo_tank_direita1.png");
-    for (int i = 0; i < INIMIGO_FRAME_COUNT; i++) {
+    for (int i = 0; i < FRAME_COUNT_TANQUE; i++) {
         char f[64];
         sprintf(f, "images/inimigo_tank_direita%d.png", i+1);
         texTanqueRight[i] = LoadTexture(f);
@@ -35,24 +41,37 @@ void InitInimigoAssets(void) {
         texTanqueLeft[i] = LoadTexture(f);
     }
     
-    texAranha = LoadTexture("images/aranha.png");
+    texAranhaIdle = LoadTexture("images/inimigo_aranha_direita1.png");
+    for (int i = 0; i < FRAME_COUNT_ARANHA; i++) {
+        char f[64];
+        sprintf(f, "images/inimigo_aranha_direita%d.png", i+1);
+        texAranhaRight[i] = LoadTexture(f);
+        sprintf(f, "images/inimigo_aranha_esquerda%d.png", i+1);
+        texAranhaLeft[i] = LoadTexture(f);
+    }
+
     texAtirador = LoadTexture("images/atirador.png");
 }
 
 void UnloadInimigoAssets(void) {
     UnloadTexture(texPadraoIdle);
-    for (int i = 0; i < INIMIGO_FRAME_COUNT; i++) {
+    for (int i = 0; i < FRAME_COUNT_PADRAO; i++) {
         UnloadTexture(texPadraoRight[i]);
         UnloadTexture(texPadraoLeft[i]);
     }
     
-    UnloadTexture(texTanqueIdle); 
-    for (int i = 0; i < INIMIGO_FRAME_COUNT; i++) {
+    UnloadTexture(texTanqueIdle);
+    for (int i = 0; i < FRAME_COUNT_TANQUE; i++) {
         UnloadTexture(texTanqueRight[i]);
         UnloadTexture(texTanqueLeft[i]);
     }
     
-    UnloadTexture(texAranha);
+    UnloadTexture(texAranhaIdle);
+    for (int i = 0; i < FRAME_COUNT_ARANHA; i++) {
+        UnloadTexture(texAranhaLeft[i]);
+        UnloadTexture(texAranhaRight[i]);
+    }
+    
     UnloadTexture(texAtirador);
 }
 
@@ -74,25 +93,56 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
 
     switch (e->tipo) {
         case TIPO_PADRAO:
+            e->escala = 0.10f;
             e->vida = 3;
             e->maxVida = 3;
             e->dano = 1;
             e->velocidade = 2.0f;
             e->distanciaAtaque = 40.0f;
             e->velAtaque = 1.5f;
+            e->frameCount = FRAME_COUNT_PADRAO;
             texW = (float)texPadraoIdle.width;
             texH = (float)texPadraoIdle.height;
             break;
             
         case TIPO_TANQUE:
+            e->escala = 0.10f;
             e->vida = 8;
             e->maxVida = 8;
             e->dano = 2;
             e->velocidade = 1.0f;
             e->distanciaAtaque = 50.0f;
             e->velAtaque = 2.5f;
-            texW = (float)texTanqueIdle.width; // <-- MUDANÇA AQUI
-            texH = (float)texTanqueIdle.height; // <-- MUDANÇA AQUI
+            e->frameCount = FRAME_COUNT_TANQUE;
+            texW = (float)texTanqueIdle.width;
+            texH = (float)texTanqueIdle.height;
+            break;
+            
+        case TIPO_ARANHA:
+            e->escala = 0.05f;
+            e->vida = 2;
+            e->maxVida = 2;
+            e->dano = 1;
+            e->velocidade = 3.5f;
+            e->distanciaAtaque = 30.0f;
+            e->velAtaque = 0.8f;
+            e->frameCount = FRAME_COUNT_ARANHA;
+            e->frameDelay = 1.0f / 12.0f;
+            texW = (float)texAranhaIdle.width;
+            texH = (float)texAranhaIdle.height;
+            break;
+            
+        case TIPO_ATIRADOR_BORRACHA:
+            e->escala = 0.10f;
+            e->vida = 2;
+            e->maxVida = 2;
+            e->dano = 1;
+            e->velocidade = 1.5f;
+            e->distanciaAtaque = 400.0f;
+            e->velAtaque = 2.0f;
+            e->frameCount = 1;
+            texW = (float)texAtirador.width;
+            texH = (float)texAtirador.height;
             break;
     }
 
@@ -106,9 +156,7 @@ Rectangle GetInimigoHitbox(Inimigo *e) {
     return e->bounds;
 }
 
-void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,
-                   int borderTop, int borderBottom,
-                   int borderLeft, int borderRight) 
+void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int borderBottom,int borderLeft, int borderRight) 
 {
     if (!e->active) return;
 
@@ -125,19 +173,7 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,
     
     Vector2 move = {0, 0};
     
-    if (e->tipo == TIPO_PADRAO) {
-        if (dist < chaseRadius && dist > e->distanciaAtaque) {
-            move = Vector2Normalize(Vector2Subtract(r->pos, e->pos));
-            e->pos.x += move.x * e->velocidade;
-            e->pos.y += move.y * e->velocidade;
-            e->bounds.x = e->pos.x;
-            e->bounds.y = e->pos.y;
-        } else if (dist < e->distanciaAtaque && e->attackTimer <= 0) {
-            r->vida -= e->dano;
-            e->attackTimer = e->velAtaque;
-        }
-    }
-    else if (e->tipo == TIPO_TANQUE) {
+    if (e->tipo == TIPO_PADRAO || e->tipo == TIPO_TANQUE || e->tipo == TIPO_ARANHA) {
         if (dist < chaseRadius && dist > e->distanciaAtaque) {
             move = Vector2Normalize(Vector2Subtract(r->pos, e->pos));
             e->pos.x += move.x * e->velocidade;
@@ -159,7 +195,7 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,
         
         e->frameTime += GetFrameTime();
         if (e->frameTime >= e->frameDelay) {
-            e->frame = (e->frame + 1) % INIMIGO_FRAME_COUNT;
+            e->frame = (e->frame + 1) % e->frameCount;
             e->frameTime = 0.0f;
         }
     } else {
@@ -179,35 +215,48 @@ void DrawInimigo(Inimigo *e) {
                 currentFrame = texPadraoLeft[e->frame];
                 break;
             case DIR_RIGHT:
-                currentFrame = texPadraoRight[e->frame];
-                break;
             case DIR_UP:
             case DIR_DOWN:
+                currentFrame = texPadraoRight[e->frame];
+                break;
             case DIR_IDLE:
             default:
                 currentFrame = texPadraoIdle;
                 break;
         }
     } 
-    // --- MUDANÇA AQUI ---
     else if (e->tipo == TIPO_TANQUE) {
         switch (e->facingDir) {
             case DIR_LEFT:
                 currentFrame = texTanqueLeft[e->frame];
                 break;
             case DIR_RIGHT:
-                currentFrame = texTanqueRight[e->frame];
-                break;
             case DIR_UP:
             case DIR_DOWN:
+                currentFrame = texTanqueRight[e->frame];
+                break;
             case DIR_IDLE:
             default:
                 currentFrame = texTanqueIdle;
                 break;
         }
     }
-    // --- FIM DA MUDANÇA ---
-    else if (e->tipo == TIPO_ARANHA) { currentFrame = texAranha; }
+    else if (e->tipo == TIPO_ARANHA) {
+        switch (e->facingDir) {
+            case DIR_LEFT:
+                currentFrame = texAranhaLeft[e->frame];
+                break;
+            case DIR_RIGHT:
+            case DIR_UP:
+            case DIR_DOWN:
+                currentFrame = texAranhaRight[e->frame];
+                break;
+            case DIR_IDLE:
+            default:
+                currentFrame = texAranhaIdle;
+                break;
+        }
+    }
     else if (e->tipo == TIPO_ATIRADOR_BORRACHA) { currentFrame = texAtirador; }
     else { currentFrame = texPadraoIdle; }
     
