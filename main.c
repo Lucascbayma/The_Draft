@@ -58,8 +58,14 @@ int main() {
     Inimigo inimigos[MAX_INIMIGOS]; 
 
     for (int i = 0; i < MAX_INIMIGOS; i++) {
-        SpawnInimigo(&inimigos[i], TIPO_PADRAO, (Vector2){ (float)GetRandomValue(200, mapa.width - 200), (float)GetRandomValue(200, mapa.height - 200) });
+    Vector2 pos = (Vector2){ (float)GetRandomValue(200, mapa.width - 200), (float)GetRandomValue(200, mapa.height - 200) };
+
+    if (i == 0) {
+        SpawnInimigo(&inimigos[i], TIPO_TANQUE, pos);
+    } else {
+        SpawnInimigo(&inimigos[i], TIPO_PADRAO, pos);
     }
+}
 
     Camera2D camera = { 0 };
     camera.target = rabisco.pos;
@@ -97,8 +103,7 @@ int main() {
                        (Vector2){ (screenW - textSize.x) / 3.1f, screenH - 100 }, 
                        tamanhoFonteTitulo, 9, (Color){150,150,150,255});
 
-            if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ||
-                GetKeyPressed() != 0) {
+            if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ||GetKeyPressed() != 0) {
                 estado = TELA_TRANSICAO;
                 alphaTransicao = 0.0f;
             }
@@ -135,13 +140,10 @@ int main() {
                 SetMusicVolume(music, musicVolume);
             }
 
-            bool rabiscoAtacou = UpdateRabisco(&rabisco, mapa.width, mapa.height,
-                                               mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
+            bool rabiscoAtacou = UpdateRabisco(&rabisco, mapa.width, mapa.height,mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
 
             for (int i = 0; i < MAX_INIMIGOS; i++) {
-                UpdateInimigo(&inimigos[i], &rabisco, mapa.width, mapa.height,
-                              mapBorderTop, mapBorderBottom, 
-                              mapBorderLeft, mapBorderRight);
+                UpdateInimigo(&inimigos[i], &rabisco, mapa.width, mapa.height,mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
             }
 
             if (rabiscoAtacou) {

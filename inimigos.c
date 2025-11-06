@@ -9,10 +9,12 @@ static Texture2D texPadraoIdle;
 static Texture2D texPadraoLeft[INIMIGO_FRAME_COUNT];
 static Texture2D texPadraoRight[INIMIGO_FRAME_COUNT];
 
-static Texture2D texTanque;
+static Texture2D texTanqueIdle;
+static Texture2D texTanqueLeft[INIMIGO_FRAME_COUNT];
+static Texture2D texTanqueRight[INIMIGO_FRAME_COUNT];
+
 static Texture2D texAranha;
 static Texture2D texAtirador;
-
 
 void InitInimigoAssets(void) {
     texPadraoIdle = LoadTexture("images/inimigo_base_direita1.png");
@@ -24,7 +26,15 @@ void InitInimigoAssets(void) {
         texPadraoLeft[i] = LoadTexture(f);
     }
     
-    texTanque = LoadTexture("images/tanque.png");
+    texTanqueIdle = LoadTexture("images/inimigo_tank_direita1.png");
+    for (int i = 0; i < INIMIGO_FRAME_COUNT; i++) {
+        char f[64];
+        sprintf(f, "images/inimigo_tank_direita%d.png", i+1);
+        texTanqueRight[i] = LoadTexture(f);
+        sprintf(f, "images/inimigo_tank_esquerda%d.png", i+1);
+        texTanqueLeft[i] = LoadTexture(f);
+    }
+    
     texAranha = LoadTexture("images/aranha.png");
     texAtirador = LoadTexture("images/atirador.png");
 }
@@ -36,7 +46,12 @@ void UnloadInimigoAssets(void) {
         UnloadTexture(texPadraoLeft[i]);
     }
     
-    UnloadTexture(texTanque);
+    UnloadTexture(texTanqueIdle); 
+    for (int i = 0; i < INIMIGO_FRAME_COUNT; i++) {
+        UnloadTexture(texTanqueRight[i]);
+        UnloadTexture(texTanqueLeft[i]);
+    }
+    
     UnloadTexture(texAranha);
     UnloadTexture(texAtirador);
 }
@@ -76,8 +91,8 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             e->velocidade = 1.0f;
             e->distanciaAtaque = 50.0f;
             e->velAtaque = 2.5f;
-            texW = (float)texTanque.width;
-            texH = (float)texTanque.height;
+            texW = (float)texTanqueIdle.width; // <-- MUDANÇA AQUI
+            texH = (float)texTanqueIdle.height; // <-- MUDANÇA AQUI
             break;
     }
 
@@ -122,6 +137,18 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,
             e->attackTimer = e->velAtaque;
         }
     }
+    else if (e->tipo == TIPO_TANQUE) {
+        if (dist < chaseRadius && dist > e->distanciaAtaque) {
+            move = Vector2Normalize(Vector2Subtract(r->pos, e->pos));
+            e->pos.x += move.x * e->velocidade;
+            e->pos.y += move.y * e->velocidade;
+            e->bounds.x = e->pos.x;
+            e->bounds.y = e->pos.y;
+        } else if (dist < e->distanciaAtaque && e->attackTimer <= 0) {
+            r->vida -= e->dano;
+            e->attackTimer = e->velAtaque;
+        }
+    }
     
     if (move.x != 0 || move.y != 0) {
         if (fabs(move.x) > fabs(move.y)) {
@@ -154,17 +181,32 @@ void DrawInimigo(Inimigo *e) {
             case DIR_RIGHT:
                 currentFrame = texPadraoRight[e->frame];
                 break;
-            case DIR_IDLE:
-                currentFrame = texPadraoIdle;
-                break;
             case DIR_UP:
             case DIR_DOWN:
+            case DIR_IDLE:
             default:
-                currentFrame = texPadraoRight[e->frame];
+                currentFrame = texPadraoIdle;
                 break;
         }
     } 
-    else if (e->tipo == TIPO_TANQUE) { currentFrame = texTanque; }
+    // --- MUDANÇA AQUI ---
+    else if (e->tipo == TIPO_TANQUE) {
+        switch (e->facingDir) {
+            case DIR_LEFT:
+                currentFrame = texTanqueLeft[e->frame];
+                break;
+            case DIR_RIGHT:
+                currentFrame = texTanqueRight[e->frame];
+                break;
+            case DIR_UP:
+            case DIR_DOWN:
+            case DIR_IDLE:
+            default:
+                currentFrame = texTanqueIdle;
+                break;
+        }
+    }
+    // --- FIM DA MUDANÇA ---
     else if (e->tipo == TIPO_ARANHA) { currentFrame = texAranha; }
     else if (e->tipo == TIPO_ATIRADOR_BORRACHA) { currentFrame = texAtirador; }
     else { currentFrame = texPadraoIdle; }
