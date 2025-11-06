@@ -154,11 +154,13 @@ void DrawInimigo(Inimigo *e) {
             case DIR_RIGHT:
                 currentFrame = texPadraoRight[e->frame];
                 break;
+            case DIR_IDLE:
+                currentFrame = texPadraoIdle;
+                break;
             case DIR_UP:
             case DIR_DOWN:
-            case DIR_IDLE:
             default:
-                currentFrame = texPadraoIdle;
+                currentFrame = texPadraoRight[e->frame];
                 break;
         }
     } 
