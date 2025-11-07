@@ -11,6 +11,13 @@ typedef enum {
     TIPO_ATIRADOR_BORRACHA
 } InimigoType;
 
+// NOVO: Enum para o estado da aranha
+typedef enum {
+    SPIDER_IDLE,
+    SPIDER_MOVING,
+    SPIDER_ATTACKING
+} SpiderState;
+
 typedef struct {
     Vector2 pos;
     float escala;
@@ -34,6 +41,12 @@ typedef struct {
     float frameDelay;
     
     int frameCount;
+    
+    SpiderState spiderState;   
+    float attackTriggerTimer; 
+    float movementTriggerTimer; 
+    float actionTimer;          
+    Vector2 actionDirection;  
     
 } Inimigo;
 
