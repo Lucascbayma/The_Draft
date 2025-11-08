@@ -8,8 +8,10 @@ typedef enum { DIR_RIGHT = 0, DIR_LEFT, DIR_UP, DIR_DOWN, DIR_IDLE } PlayerDirec
 typedef struct {
     Vector2 pos;
     float escala;
-    int vida;
-    int maxVida;
+    
+    int maxHeartContainers; 
+    int currentHitPoints; 
+    
     int moedas;
     int dano;
     float velocidade;
@@ -27,8 +29,10 @@ typedef struct {
     float attackOffsetY;
     float attackOffsetX;
     
+    // TEXTURAS DA HUD 
     Texture2D heartFull;
     Texture2D heartBroken;
+    Texture2D hollowHeart; 
     Texture2D coinIcon;
     Font hudFont;
     Texture2D iconVel;

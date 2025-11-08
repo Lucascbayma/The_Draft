@@ -97,7 +97,7 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             e->escala = 0.10f;
             e->vida = 3;
             e->maxVida = 3;
-            e->dano = 1;
+            e->dano = 1; // Causa 1 ponto de dano
             e->velocidade = 2.0f;
             e->distanciaAtaque = 40.0f;
             e->velAtaque = 1.5f;
@@ -110,7 +110,7 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             e->escala = 0.10f;
             e->vida = 8;
             e->maxVida = 8;
-            e->dano = 2;
+            e->dano = 2; // Causa 2 pontos de dano
             e->velocidade = 1.0f;
             e->distanciaAtaque = 50.0f;
             e->velAtaque = 2.5f;
@@ -123,8 +123,8 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             e->escala = 0.05f;
             e->vida = 2;
             e->maxVida = 2;
-            e->dano = 1;
-            e->velocidade = 6.5f;
+            e->dano = 1; // Causa 1 ponto de dano
+            e->velocidade = 3.5f;
             e->distanciaAtaque = 30.0f;
             e->velAtaque = 0.8f;
             e->frameCount = FRAME_COUNT_ARANHA;
@@ -132,13 +132,11 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             texW = (float)texAranhaIdle.width;
             texH = (float)texAranhaIdle.height;
             
-            // ESTADO DA ARANHA 
             e->spiderState = SPIDER_IDLE;
             e->attackTriggerTimer = 0.0f;
             e->movementTriggerTimer = 0.0f;
             e->actionTimer = 0.0f;
             e->actionDirection = (Vector2){0, 0};
-
             
             break;
             
@@ -180,33 +178,35 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
     
     float dist = Vector2Distance(e->pos, r->pos);
     float chaseRadius = 400.0f;
-    float dt = GetFrameTime(); // Delta time
+    float dt = GetFrameTime(); 
     
     Vector2 move = {0, 0};
     
-    // --- LÓGICA PARA PADRÃO E TANQUE ---
+
     if (e->tipo == TIPO_PADRAO || e->tipo == TIPO_TANQUE) {
         if (dist < chaseRadius && dist > e->distanciaAtaque) {
             move = Vector2Normalize(Vector2Subtract(r->pos, e->pos));
             e->pos.x += move.x * e->velocidade;
             e->pos.y += move.y * e->velocidade;
         } else if (dist < e->distanciaAtaque && e->attackTimer <= 0) {
-            r->vida -= e->dano;
+            r->currentHitPoints -= e->dano; 
             e->attackTimer = e->velAtaque;
         }
     }
     
+    // --- LÓGICA DA ARANHA ---
     else if (e->tipo == TIPO_ARANHA) {
         
         // 1. Timer de Sorteio de Ataque 
         e->attackTriggerTimer += dt;
-        if (e->attackTriggerTimer >= 4.0f) {
+        if (e->attackTriggerTimer >= 6.0f) {
             e->attackTriggerTimer = 0.0f; // Reinicia contagem
             
             // Sorteio de 1/2 (0 ou 1)
             if (GetRandomValue(0, 1) == 0) {
+
                 e->spiderState = SPIDER_ATTACKING;
-                e->actionTimer = 1.5f; 
+                e->actionTimer = 1.0f; // Duração do ataque
                 e->actionDirection = Vector2Normalize(Vector2Subtract(r->pos, e->pos));
             }
         }
@@ -217,27 +217,27 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
             if (e->movementTriggerTimer >= 1.0f) {
                 e->movementTriggerTimer = 0.0f; // Reinicia contagem
                 
-                int choice = GetRandomValue(1, 6); 
+                int choice = GetRandomValue(1, 6); // Sorteia de 1 a 6
                 
                 switch (choice) {
                     case 1: // Cima
                         e->spiderState = SPIDER_MOVING;
-                        e->actionTimer = 0.45f;
+                        e->actionTimer = 0.25f;
                         e->actionDirection = (Vector2){0, -1};
                         break;
                     case 2: // Baixo
                         e->spiderState = SPIDER_MOVING;
-                        e->actionTimer = 0.45f;
+                        e->actionTimer = 0.25f;
                         e->actionDirection = (Vector2){0, 1};
                         break;
                     case 3: // Esquerda
                         e->spiderState = SPIDER_MOVING;
-                        e->actionTimer = 0.45f;
+                        e->actionTimer = 0.25f;
                         e->actionDirection = (Vector2){-1, 0};
                         break;
                     case 4: // Direita
                         e->spiderState = SPIDER_MOVING;
-                        e->actionTimer = 0.45f;
+                        e->actionTimer = 0.25f;
                         e->actionDirection = (Vector2){1, 0};
                         break;
                     case 5: // Parada
@@ -250,7 +250,7 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
             }
         }
         
-
+        
         if (e->spiderState == SPIDER_ATTACKING || e->spiderState == SPIDER_MOVING) {
             e->actionTimer -= dt; 
             
@@ -262,8 +262,8 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
                 
 
                 if (e->spiderState == SPIDER_ATTACKING && dist < e->distanciaAtaque && e->attackTimer <= 0) {
-                    r->vida -= e->dano;
-                    e->attackTimer = e->velAtaque;
+                    r->currentHitPoints -= e->dano; 
+                    e->attackTimer = e->velAtaque; // Entra em cooldown
                 }
                 
             } else {
@@ -274,6 +274,9 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
             }
         }
     }
+
+
+
 
     if (move.x != 0 || move.y != 0) {
         if (fabs(move.x) > fabs(move.y)) {
@@ -292,7 +295,7 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
         e->facingDir = DIR_IDLE;
     }
 
-    // --- Verificação de Limites (Para todos os inimigos) ---
+
     float texW = e->bounds.width;
     float texH = e->bounds.height;
     
@@ -301,7 +304,6 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
     if (e->pos.y < borderTop) e->pos.y = borderTop;
     if (e->pos.y > mapH - borderBottom - texH) e->pos.y = mapH - borderBottom - texH;
     
-    // Atualiza a hitbox após mover e verificar limites
     e->bounds.x = e->pos.x;
     e->bounds.y = e->pos.y;
 }

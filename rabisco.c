@@ -28,8 +28,10 @@ void InitRabisco(Rabisco *r, float x, float y) {
     r->pos = (Vector2){x, y};
     r->escala = 0.10f; 
     
-    r->maxVida = 4;
-    r->vida = r->maxVida;
+    // --- SISTEMA DE VIDA ATUALIZADO ---
+    r->maxHeartContainers = 3; // Total de "recipientes"
+    r->currentHitPoints = r->maxHeartContainers * 2; 
+    
     r->moedas = 0;
     
     r->dano = 2;
@@ -69,8 +71,10 @@ void InitRabisco(Rabisco *r, float x, float y) {
         attackFrames[i] = LoadTexture(filename);
     }
 
+    //  TEXTURAS DA HUD 
     r->heartFull = LoadTexture("images/heart.png");
     r->heartBroken = LoadTexture("images/heart_broken.png");
+    r->hollowHeart = LoadTexture("images/hollow_heart.png"); 
     r->coinIcon = LoadTexture("images/moeda.png");
     r->iconDamage = LoadTexture("images/hud_dano.png");
     r->iconVel = LoadTexture("images/hud_velocidade.png");
@@ -277,8 +281,10 @@ void UnloadRabisco(Rabisco *r){
     for(int i = 0; i < FRAME_UP; i++)    UnloadTexture(walkUp[i]);
     for(int i = 0; i < FRAME_ATTACK; i++) UnloadTexture(attackFrames[i]);
 
+
     UnloadTexture(r->heartFull);
     UnloadTexture(r->heartBroken);
+    UnloadTexture(r->hollowHeart); 
     UnloadTexture(r->coinIcon);
     UnloadTexture(r->iconDamage);
     UnloadTexture(r->iconVel);

@@ -32,7 +32,7 @@ int main() {
     const int tamanhoFonteTitulo = 30; 
     Font fontTitulo = LoadFontEx("assets/PatrickHandSC-Regular.ttf", tamanhoFonteTitulo, NULL, 0); 
 
-    Music music = LoadMusicStream("audio/music/the_draft_music.mp3");
+    Music music = LoadMusicStream("audio/music/the_draft_music.mp3"); 
     music.looping = true;
     float musicVolume = 0.5f; 
     SetMusicVolume(music, musicVolume);
@@ -191,13 +191,28 @@ int main() {
             int padding = 20;
             int heartSize = 70;
 
-            for (int i = 0; i < rabisco.maxVida; i++) {
-                Texture2D heartTexture = (i < rabisco.vida) ? rabisco.heartFull : rabisco.heartBroken;
+            for (int i = 0; i < rabisco.maxHeartContainers; i++) {
+                Texture2D heartTexture;
+                
+                int heartValue = i * 2; // O valor base para este recipiente (0, 2, 4, 6...)
+                
+                if (rabisco.currentHitPoints >= heartValue + 2) {
+                    // Se a vida for >= 2 (para o coração 0), >= 4 (para o coração 1), etc.
+                    heartTexture = rabisco.heartFull;
+                } else if (rabisco.currentHitPoints == heartValue + 1) {
+                    // Se a vida for == 1 (para o coração 0), == 3 (para o coração 1), etc.
+                    heartTexture = rabisco.heartBroken;
+                } else {
+                    // Se a vida for 0 (para o coração 0), 2 (para o coração 1), etc.
+                    heartTexture = rabisco.hollowHeart;
+                }
+                
                 if (heartTexture.width > 0) {
                     float scaleFactor = (float)heartSize / heartTexture.width;
                     DrawTextureEx(heartTexture, (Vector2){ padding + i * (heartSize + 5), padding }, 0.0f, scaleFactor, WHITE);
                 }
             }
+
             
             int coinSize = 60;
             int fontSize = 55;
