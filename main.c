@@ -41,6 +41,7 @@ void ResetJogo(Rabisco *rabisco, Inimigo inimigos[], int maxInimigos, Texture2D 
 int main() {
     InitWindow(0, 0, "The Draft");
     ToggleFullscreen();
+    InitAudioDevice();
 
     int screenW = GetScreenWidth();
     int screenH = GetScreenHeight();
@@ -343,6 +344,7 @@ int main() {
     UnloadTexture(mapa);
     UnloadFont(fontTitulo);
     UnloadRabisco(&rabisco); 
+    CloseAudioDevice(); 
     CloseWindow();
     return 0;
 }
