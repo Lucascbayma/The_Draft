@@ -9,13 +9,38 @@
 typedef enum {
     TELA_TITULO,
     TELA_TRANSICAO,
-    TELA_JOGO
+    TELA_JOGO,
+    TELA_GAME_OVER 
 } EstadoJogo;
+
+// função p/ reiniciar o estado do jogador e dos inimigos
+void ResetJogo(Rabisco *rabisco, Inimigo inimigos[], int maxInimigos, Texture2D mapa) {
+
+    rabisco->pos = (Vector2){ mapa.width / 2.0f, mapa.height / 2.0f };
+    rabisco->currentHitPoints = rabisco->maxHeartContainers * 2; 
+    rabisco->moedas = 0;
+    rabisco->facingDir = DIR_DOWN;
+    rabisco->attackTimer = 0.0f;
+    rabisco->attackDurationTimer = 0.0f;
+    
+
+    for (int i = 0; i < maxInimigos; i++) {
+        Vector2 pos = (Vector2){ (float)GetRandomValue(200, mapa.width - 200), (float)GetRandomValue(200, mapa.height - 200) };
+        
+        if (i == 0) {
+            SpawnInimigo(&inimigos[i], TIPO_TANQUE, pos);
+        } else if (i == 1) {
+            SpawnInimigo(&inimigos[i], TIPO_ARANHA, pos);
+        } else {
+            SpawnInimigo(&inimigos[i], TIPO_PADRAO, pos);
+        }
+    }
+}
+
 
 int main() {
     InitWindow(0, 0, "The Draft");
     ToggleFullscreen();
-    InitAudioDevice(); 
 
     int screenW = GetScreenWidth();
     int screenH = GetScreenHeight();
@@ -32,7 +57,7 @@ int main() {
     const int tamanhoFonteTitulo = 30; 
     Font fontTitulo = LoadFontEx("assets/PatrickHandSC-Regular.ttf", tamanhoFonteTitulo, NULL, 0); 
 
-    Music music = LoadMusicStream("audio/music/the_draft_music.mp3"); 
+    Music music = LoadMusicStream("audio/music/the_draft_music.mp3");
     music.looping = true;
     float musicVolume = 0.5f; 
     SetMusicVolume(music, musicVolume);
@@ -44,6 +69,8 @@ int main() {
 
     EstadoJogo estado = TELA_TITULO;
     float alphaTransicao = 0.0f; 
+    
+    int opcaoGameOver = 0; // 0 = Jogar de novo, 1 = Voltar ao menu
 
     const int mapBorderTop = 45;
     const int mapBorderBottom = 120;
@@ -57,17 +84,8 @@ int main() {
     InitInimigoAssets(); 
     Inimigo inimigos[MAX_INIMIGOS]; 
 
-    for (int i = 0; i < MAX_INIMIGOS; i++) {
-        Vector2 pos = (Vector2){ (float)GetRandomValue(200, mapa.width - 200), (float)GetRandomValue(200, mapa.height - 200) };
-        
-        if (i == 0) {
-            SpawnInimigo(&inimigos[i], TIPO_TANQUE, pos);
-        } else if (i == 1) {
-            SpawnInimigo(&inimigos[i], TIPO_ARANHA, pos);
-        } else {
-            SpawnInimigo(&inimigos[i], TIPO_PADRAO, pos);
-        }
-    }
+
+    ResetJogo(&rabisco, inimigos, MAX_INIMIGOS, mapa);
 
     Camera2D camera = { 0 };
     camera.target = rabisco.pos;
@@ -85,6 +103,7 @@ int main() {
         ClearBackground(BLACK);
 
         if (estado == TELA_TITULO) {
+
             tempoFrame += GetFrameTime();
             if (tempoFrame >= duracaoFrame) {
                 tempoFrame = 0.0f;
@@ -113,6 +132,7 @@ int main() {
         }
 
         else if (estado == TELA_TRANSICAO) {
+
             Texture2D frame = tituloFrames[frameAtual];
             float scaleX = (float)screenW / frame.width;
             float scaleY = (float)screenH / frame.height;
@@ -132,6 +152,8 @@ int main() {
         }
 
         else if (estado == TELA_JOGO) {
+
+            
             if (IsKeyPressed(KEY_MINUS)) {
                 musicVolume -= 0.1f;
                 if (musicVolume < 0.0f) musicVolume = 0.0f;
@@ -167,6 +189,7 @@ int main() {
                 if (inimigos[i].tint.r == RED.r) inimigos[i].tint = WHITE;
             }
 
+
             Vector2 desiredTarget = rabisco.pos;
             camera.target.x += (desiredTarget.x - camera.target.x) * 0.15f;
             camera.target.y += (desiredTarget.y - camera.target.y) * 0.15f;
@@ -179,6 +202,7 @@ int main() {
             if (camera.target.x > mapa.width - halfWidth) camera.target.x = mapa.width - halfWidth;
             if (camera.target.y > mapa.height - halfHeight) camera.target.y = mapa.height - halfHeight;
 
+
             BeginMode2D(camera);
                 DrawTexture(mapa, 0, 0, WHITE);
                 
@@ -190,30 +214,22 @@ int main() {
 
             int padding = 20;
             int heartSize = 70;
-
             for (int i = 0; i < rabisco.maxHeartContainers; i++) {
                 Texture2D heartTexture;
-                
-                int heartValue = i * 2; // O valor base para este recipiente (0, 2, 4, 6...)
-                
+                int heartValue = i * 2;
                 if (rabisco.currentHitPoints >= heartValue + 2) {
-                    // Se a vida for >= 2 (para o coração 0), >= 4 (para o coração 1), etc.
                     heartTexture = rabisco.heartFull;
                 } else if (rabisco.currentHitPoints == heartValue + 1) {
-                    // Se a vida for == 1 (para o coração 0), == 3 (para o coração 1), etc.
                     heartTexture = rabisco.heartBroken;
                 } else {
-                    // Se a vida for 0 (para o coração 0), 2 (para o coração 1), etc.
                     heartTexture = rabisco.hollowHeart;
                 }
-                
                 if (heartTexture.width > 0) {
                     float scaleFactor = (float)heartSize / heartTexture.width;
                     DrawTextureEx(heartTexture, (Vector2){ padding + i * (heartSize + 5), padding }, 0.0f, scaleFactor, WHITE);
                 }
             }
 
-            
             int coinSize = 60;
             int fontSize = 55;
             float spacing = 0;
@@ -222,79 +238,98 @@ int main() {
             int textPosY = coinPosY + (coinSize - fontSize) / 2;
             const char *coinText = TextFormat("%02d", rabisco.moedas);
             float coinScale = (float)coinSize / rabisco.coinIcon.width;
-            
             DrawTextureEx(rabisco.coinIcon, (Vector2){ padding, coinPosY }, 0.0f, coinScale, WHITE);
-            
             DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX - 2, textPosY}, fontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX + 2, textPosY}, fontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY - 2}, fontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY + 2}, fontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY}, fontSize, spacing, WHITE);
-
             int statusFontSize = 60; 
             int iconStatusSize = 70; 
             float iconOffset = 5; 
             int lineHeight = statusFontSize + 10; 
-            
             int statusGap = 80; 
-            
             int statusY = coinPosY + coinSize + statusGap; 
-            
             const char* damageValue = TextFormat("%d", rabisco.dano);
-            
             Vector2 damageIconPos = (Vector2){ padding, statusY }; 
             Vector2 damageValuePos = (Vector2){ padding + iconStatusSize + 10, statusY };
-
-            DrawTextureEx(rabisco.iconDamage, 
-                          (Vector2){ damageIconPos.x, damageIconPos.y + iconOffset }, 
-                          0.0f, (float)iconStatusSize / rabisco.iconDamage.width, WHITE); 
-
+            DrawTextureEx(rabisco.iconDamage, (Vector2){ damageIconPos.x, damageIconPos.y + iconOffset }, 0.0f, (float)iconStatusSize / rabisco.iconDamage.width, WHITE); 
             DrawTextEx(rabisco.hudFont, damageValue, (Vector2){damageValuePos.x - 2, damageValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, damageValue, (Vector2){damageValuePos.x + 2, damageValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, damageValue, (Vector2){damageValuePos.x, damageValuePos.y - 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, damageValue, (Vector2){damageValuePos.x, damageValuePos.y + 2}, statusFontSize, spacing, BLACK);
-            DrawTextEx(rabisco.hudFont, damageValue, 
-                       damageValuePos, 
-                       statusFontSize, spacing, WHITE);
-            
+            DrawTextEx(rabisco.hudFont, damageValue, damageValuePos, statusFontSize, spacing, WHITE);
             const char* speedValue = TextFormat("%.1f", rabisco.velocidade);
-
             int speedY = statusY + lineHeight;
-            
             Vector2 speedIconPos = (Vector2){ padding, speedY };
             Vector2 speedValuePos = (Vector2){ padding + iconStatusSize + 10, speedY };
-            
-            DrawTextureEx(rabisco.iconVel, 
-                          (Vector2){ speedIconPos.x, speedIconPos.y + iconOffset }, 
-                          0.0f, (float)iconStatusSize / rabisco.iconVel.width, WHITE);
-                          
+            DrawTextureEx(rabisco.iconVel, (Vector2){ speedIconPos.x, speedIconPos.y + iconOffset }, 0.0f, (float)iconStatusSize / rabisco.iconVel.width, WHITE);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x - 2, speedValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x + 2, speedValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x, speedValuePos.y - 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x, speedValuePos.y + 2}, statusFontSize, spacing, BLACK);
-            DrawTextEx(rabisco.hudFont, speedValue, 
-                       speedValuePos, 
-                       statusFontSize, spacing, WHITE);
-
+            DrawTextEx(rabisco.hudFont, speedValue, speedValuePos, statusFontSize, spacing, WHITE);
             const char* rangeValue = TextFormat("%.1f", rabisco.alcance);
-            
             int rangeY = speedY + lineHeight;
-            
             Vector2 rangeIconPos = (Vector2){ padding, rangeY };
             Vector2 rangeValuePos = (Vector2){ padding + iconStatusSize + 10, rangeY };
-            
-            DrawTextureEx(rabisco.iconRange,
-                          (Vector2){ rangeIconPos.x, rangeIconPos.y + iconOffset }, 
-                          0.0f, (float)iconStatusSize / rabisco.iconRange.width, WHITE);
-                          
+            DrawTextureEx(rabisco.iconRange, (Vector2){ rangeIconPos.x, rangeIconPos.y + iconOffset }, 0.0f, (float)iconStatusSize / rabisco.iconRange.width, WHITE);
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x - 2, rangeValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x + 2, rangeValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x, rangeValuePos.y - 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x, rangeValuePos.y + 2}, statusFontSize, spacing, BLACK);
-            DrawTextEx(rabisco.hudFont, rangeValue, 
-                       rangeValuePos, 
-                       statusFontSize, spacing, WHITE);
+            DrawTextEx(rabisco.hudFont, rangeValue, rangeValuePos, statusFontSize, spacing, WHITE);
+
+
+            // verificação de morte
+            if (rabisco.currentHitPoints <= 0) {
+                estado = TELA_GAME_OVER;
+                opcaoGameOver = 0; 
+            }
+
+            
         }
+        
+        // game over
+        else if (estado == TELA_GAME_OVER) {
+
+            if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+                opcaoGameOver = 0;
+            }
+            if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+                opcaoGameOver = 1;
+            }
+            
+            if (IsKeyPressed(KEY_ENTER)) {
+                // Reseta o jogo independentemente da escolha
+                ResetJogo(&rabisco, inimigos, MAX_INIMIGOS, mapa);
+                
+                if (opcaoGameOver == 0) { // Jogar de novo
+                    estado = TELA_JOGO;
+                } else { // Voltar ao menu
+                    estado = TELA_TITULO;
+                }
+            }
+            
+            DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.7f)); 
+            
+            const char *tituloGO = "GAME OVER";
+            Vector2 tamTitulo = MeasureTextEx(fontTitulo, tituloGO, 80, 5);
+            DrawTextEx(fontTitulo, tituloGO, (Vector2){(screenW - tamTitulo.x) / 2, screenH/2 - 100}, 80, 5, RED);
+
+            // Opção 1: Jogar de novo
+            const char *opcao1 = "Jogar de novo";
+            Vector2 tamOp1 = MeasureTextEx(fontTitulo, opcao1, 40, 5);
+            DrawTextEx(fontTitulo, opcao1, (Vector2){(screenW - tamOp1.x) / 2, screenH/2 + 20}, 40, 5, 
+                       (opcaoGameOver == 0 ? YELLOW : WHITE)); 
+
+            // Opção 2: Voltar ao Menu
+            const char *opcao2 = "Voltar ao Menu";
+            Vector2 tamOp2 = MeasureTextEx(fontTitulo, opcao2, 40, 5);
+            DrawTextEx(fontTitulo, opcao2, (Vector2){(screenW - tamOp2.x) / 2, screenH/2 + 80}, 40, 5,
+                       (opcaoGameOver == 1 ? YELLOW : WHITE)); 
+        }
+
 
         EndDrawing();
     }
@@ -308,7 +343,6 @@ int main() {
     UnloadTexture(mapa);
     UnloadFont(fontTitulo);
     UnloadRabisco(&rabisco); 
-    CloseAudioDevice(); 
     CloseWindow();
     return 0;
 }
