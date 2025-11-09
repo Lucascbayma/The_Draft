@@ -27,13 +27,9 @@ static PlayerDirection lastDir = DIR_IDLE;
 void InitRabisco(Rabisco *r, float x, float y) {
     r->pos = (Vector2){x, y};
     r->escala = 0.10f; 
-    
-    // --- SISTEMA DE VIDA ATUALIZADO ---
-    r->maxHeartContainers = 3; // Total de "recipientes"
-    r->currentHitPoints = r->maxHeartContainers * 2; 
-    
-    r->moedas = 0;
-    
+    r->maxHeartContainers = 3; 
+    r->currentHitPoints = r->maxHeartContainers * 2;    
+    r->moedas = 0;    
     r->dano = 2;
     r->velocidade = 4.0f;
     r->distanciaAtaque = 30.0f;
@@ -71,7 +67,6 @@ void InitRabisco(Rabisco *r, float x, float y) {
         attackFrames[i] = LoadTexture(filename);
     }
 
-    //  TEXTURAS DA HUD 
     r->heartFull = LoadTexture("images/heart.png");
     r->heartBroken = LoadTexture("images/heart_broken.png");
     r->hollowHeart = LoadTexture("images/hollow_heart.png"); 
@@ -152,7 +147,7 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
              r->facingDir = lastDir;
         }
     } else if (r->attackDurationTimer <= 0){
-        lastDir = DIR_IDLE;
+        lastDir = DIR_IDLE; 
     }
 
     frameTime += GetFrameTime();
@@ -187,27 +182,22 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
 }
 
 void DrawRabisco(Rabisco *r){
-    Texture2D currentFrame = idle;
+    Texture2D currentFrame = idle; 
     bool isMoving = (lastDir != DIR_IDLE);
-    
+
     if (isMoving) {
+
         switch (r->facingDir) {
             case DIR_UP:    currentFrame = walkUp[frame % FRAME_UP]; break;
             case DIR_LEFT:  currentFrame = walkLeft[frame % FRAME_LEFT]; break;
             case DIR_RIGHT: currentFrame = walkRight[frame % FRAME_RIGHT]; break;
             case DIR_DOWN:
             case DIR_IDLE:
-            default:        currentFrame = idle;
+            default:        currentFrame = idle; 
         }
     } else {
-        switch (r->facingDir) {
-            case DIR_UP:    currentFrame = walkUp[0]; break;
-            case DIR_LEFT:  currentFrame = walkLeft[0]; break;
-            case DIR_RIGHT: currentFrame = walkRight[0]; break;
-            case DIR_DOWN:
-            case DIR_IDLE:
-            default:        currentFrame = idle;
-        }
+
+        currentFrame = idle;
     }
     
     
