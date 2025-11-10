@@ -7,19 +7,15 @@
 #define FRAME_COUNT_TANQUE 8
 #define FRAME_COUNT_ARANHA 4
 
-
 static Texture2D texPadraoIdle;
 static Texture2D texPadraoLeft[FRAME_COUNT_PADRAO];
 static Texture2D texPadraoRight[FRAME_COUNT_PADRAO];
-
 static Texture2D texTanqueIdle;
 static Texture2D texTanqueLeft[FRAME_COUNT_TANQUE];
 static Texture2D texTanqueRight[FRAME_COUNT_TANQUE];
-
 static Texture2D texAranhaIdle;
 static Texture2D texAranhaLeft[FRAME_COUNT_ARANHA];
 static Texture2D texAranhaRight[FRAME_COUNT_ARANHA];
-
 static Texture2D texAtirador;
 
 
@@ -88,7 +84,6 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
     e->frame = 0;
     e->frameTime = 0.0f;
     e->frameDelay = 1.0f / 8.0f;
-
     float texW = (float)texPadraoIdle.width;
     float texH = (float)texPadraoIdle.height;
 
@@ -121,11 +116,11 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             
         case TIPO_ARANHA:
             e->escala = 0.05f;
-            e->vida = 2;
+            e->vida = 3;
             e->maxVida = 2;
             e->dano = 1; // Causa 1 ponto de dano
-            e->velocidade = 3.5f;
-            e->distanciaAtaque = 30.0f;
+            e->velocidade = 10.5f;
+            e->distanciaAtaque = 60.0f;
             e->velAtaque = 0.8f;
             e->frameCount = FRAME_COUNT_ARANHA;
             e->frameDelay = 1.0f / 12.0f;
@@ -199,14 +194,14 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
         
         // 1. Timer de Sorteio de Ataque 
         e->attackTriggerTimer += dt;
-        if (e->attackTriggerTimer >= 6.0f) {
+        if (e->attackTriggerTimer >= 5.0f) {
             e->attackTriggerTimer = 0.0f; // Reinicia contagem
             
             // Sorteio de 1/2 (0 ou 1)
             if (GetRandomValue(0, 1) == 0) {
 
                 e->spiderState = SPIDER_ATTACKING;
-                e->actionTimer = 1.0f; // Duração do ataque
+                e->actionTimer = 1.5f; // Duração do ataque
                 e->actionDirection = Vector2Normalize(Vector2Subtract(r->pos, e->pos));
             }
         }
@@ -222,22 +217,22 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
                 switch (choice) {
                     case 1: // Cima
                         e->spiderState = SPIDER_MOVING;
-                        e->actionTimer = 0.25f;
+                        e->actionTimer = 0.45f;
                         e->actionDirection = (Vector2){0, -1};
                         break;
                     case 2: // Baixo
                         e->spiderState = SPIDER_MOVING;
-                        e->actionTimer = 0.25f;
+                        e->actionTimer = 0.45f;
                         e->actionDirection = (Vector2){0, 1};
                         break;
                     case 3: // Esquerda
                         e->spiderState = SPIDER_MOVING;
-                        e->actionTimer = 0.25f;
+                        e->actionTimer = 0.45f;
                         e->actionDirection = (Vector2){-1, 0};
                         break;
                     case 4: // Direita
                         e->spiderState = SPIDER_MOVING;
-                        e->actionTimer = 0.25f;
+                        e->actionTimer = 0.45f;
                         e->actionDirection = (Vector2){1, 0};
                         break;
                     case 5: // Parada
