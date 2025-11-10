@@ -102,7 +102,7 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             break;
             
         case TIPO_TANQUE:
-            e->escala = 0.10f;
+            e->escala = 0.13f;
             e->vida = 8;
             e->maxVida = 8;
             e->dano = 2; 
