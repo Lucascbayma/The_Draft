@@ -6,6 +6,7 @@
 #define FRAME_COUNT_PADRAO 8
 #define FRAME_COUNT_TANQUE 8
 #define FRAME_COUNT_ARANHA 4
+#define FRAME_COUNT_ATIRADOR 8
 
 static Texture2D texPadraoIdle;
 static Texture2D texPadraoLeft[FRAME_COUNT_PADRAO];
@@ -16,8 +17,11 @@ static Texture2D texTanqueRight[FRAME_COUNT_TANQUE];
 static Texture2D texAranhaIdle;
 static Texture2D texAranhaLeft[FRAME_COUNT_ARANHA];
 static Texture2D texAranhaRight[FRAME_COUNT_ARANHA];
-static Texture2D texAtirador;
 
+static Texture2D texAtiradorIdle;
+static Texture2D texAtiradorLeft[FRAME_COUNT_ATIRADOR];
+static Texture2D texAtiradorRight[FRAME_COUNT_ATIRADOR];
+static Texture2D texProjetilBorracha; 
 
 void InitInimigoAssets(void) {
     texPadraoIdle = LoadTexture("images/inimigo_base_direita1.png");
@@ -47,7 +51,15 @@ void InitInimigoAssets(void) {
         texAranhaLeft[i] = LoadTexture(f);
     }
 
-    texAtirador = LoadTexture("images/atirador.png");
+    texAtiradorIdle = LoadTexture("images/inimigo_borracha_direita_idle.png");
+    for (int i = 0; i < FRAME_COUNT_ATIRADOR; i++) {
+        char f[64];
+        sprintf(f, "images/inimigo_borracha_direita%d.png", i + 1);
+        texAtiradorRight[i] = LoadTexture(f);
+        sprintf(f, "images/inimigo_borracha_esquerda%d.png", i + 1);
+        texAtiradorLeft[i] = LoadTexture(f);
+    }
+    texProjetilBorracha = LoadTexture("images/inimigo_borracha_tiro.png"); 
 }
 
 void UnloadInimigoAssets(void) {
@@ -69,7 +81,12 @@ void UnloadInimigoAssets(void) {
         UnloadTexture(texAranhaRight[i]);
     }
     
-    UnloadTexture(texAtirador);
+    UnloadTexture(texAtiradorIdle);
+    for (int i = 0; i < FRAME_COUNT_ATIRADOR; i++) {
+        UnloadTexture(texAtiradorLeft[i]);
+        UnloadTexture(texAtiradorRight[i]);
+    }
+    UnloadTexture(texProjetilBorracha);
 }
 
 void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
@@ -137,15 +154,15 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             
         case TIPO_ATIRADOR_BORRACHA:
             e->escala = 0.10f;
-            e->vida = 2;
+            e->vida = 5;
             e->maxVida = 2;
             e->dano = 1;
             e->velocidade = 1.5f; 
-            e->distanciaAtaque = 400.0f;
-            e->velAtaque = 2.0f;
-            e->frameCount = 1;
-            texW = (float)texAtirador.width;
-            texH = (float)texAtirador.height;
+            e->distanciaAtaque = 400.0f; 
+            e->velAtaque = 1.75f; 
+            e->frameCount = FRAME_COUNT_ATIRADOR;
+            texW = (float)texAtiradorIdle.width;
+            texH = (float)texAtiradorIdle.height;
             break;
     }
 
@@ -177,12 +194,18 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
     
     Vector2 move = {0, 0};
     
-
+    // Variável para rastrear se o inimigo tem um comportamento ativo (olhar/mirar)
+    bool isMovingOrLooking = false;
+    
+    // --- LÓGICA DE MOVIMENTO/ATAQUE (TODOS OS TIPOS) ---
+    
     if (e->tipo == TIPO_PADRAO || e->tipo == TIPO_TANQUE) {
+        // Lógica para Padrão e Tanque (Perseguição Melee)
         if (dist < chaseRadius && dist > e->distanciaAtaque) {
             move = Vector2Normalize(Vector2Subtract(r->pos, e->pos));
             e->pos.x += move.x * e->velocidade; 
             e->pos.y += move.y * e->velocidade; 
+            isMovingOrLooking = true;
         } else if (dist < e->distanciaAtaque && e->attackTimer <= 0) {
             r->currentHitPoints -= e->dano; 
             e->attackTimer = e->velAtaque;
@@ -305,6 +328,7 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
                     e->attackTimer = e->velAtaque; 
                 }
                 
+                isMovingOrLooking = true; 
             } else {
                 e->spiderState = SPIDER_IDLE;
                 e->movementTriggerTimer = 0.0f; 
@@ -312,12 +336,44 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
             }
         }
     }
-
-    if (move.x != 0 || move.y != 0) {
-        if (fabs(move.x) > fabs(move.y)) {
-            e->facingDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
+    
+    // --- LÓGICA DO ATIRADOR BORRACHA ---
+    else if (e->tipo == TIPO_ATIRADOR_BORRACHA) {
+        
+        Vector2 dirToRabisco = Vector2Normalize(Vector2Subtract(r->pos, e->pos));
+        
+        // 1. DEFINIR PARA ONDE ESTÁ OLHANDO (Sempre em direção ao Rabisco)
+        if (fabs(dirToRabisco.x) > fabs(dirToRabisco.y)) {
+            e->facingDir = (dirToRabisco.x > 0) ? DIR_RIGHT : DIR_LEFT;
         } else {
-            e->facingDir = (move.y > 0) ? DIR_DOWN : DIR_UP;
+            // Se estiver olhando para cima ou baixo, usaremos os sprites DIR_RIGHT ou DIR_LEFT no Draw
+            e->facingDir = (dirToRabisco.y > 0) ? DIR_DOWN : DIR_UP; 
+        }
+        isMovingOrLooking = true; // Sempre ativo (olhando ou atirando)
+
+        // 2. Fuga se o jogador estiver muito perto
+        if (dist < 320.0f) {
+             move = Vector2Scale(dirToRabisco, -1.0f); // Fuga (afastando-se)
+             e->pos.x += move.x * e->velocidade; 
+             e->pos.y += move.y * e->velocidade;
+        } 
+        // 3. Tiro se estiver no alcance de ataque (e não estiver muito perto)
+        else if (dist < e->distanciaAtaque && e->attackTimer <= 0) {
+            SpawnProjetilAtirador(e->pos, dirToRabisco); 
+            e->attackTimer = e->velAtaque; 
+            // Não há movimento, 'move' permanece {0, 0}
+        }
+    }
+    // Roda se houve movimento OU se o inimigo tem um comportamento ativo (Atirador/Aranha)
+    if (Vector2Distance(move, (Vector2){0, 0}) != 0 || isMovingOrLooking) {
+        
+        // Se houver movimento, atualiza facingDir (para Padrão/Tanque/Aranha no estado MOVING)
+        if (Vector2Distance(move, (Vector2){0, 0}) != 0 && e->tipo != TIPO_ATIRADOR_BORRACHA) {
+            if (fabs(move.x) > fabs(move.y)) {
+                e->facingDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
+            } else {
+                e->facingDir = (move.y > 0) ? DIR_DOWN : DIR_UP;
+            }
         }
         
         e->frameTime += GetFrameTime();
@@ -395,7 +451,28 @@ void DrawInimigo(Inimigo *e) {
                 break;
         }
     }
-    else if (e->tipo == TIPO_ATIRADOR_BORRACHA) { currentFrame = texAtirador; }
+    
+    else if (e->tipo == TIPO_ATIRADOR_BORRACHA) { 
+        
+        // Verifica se a direção é Idle (não está fugindo nem mirando)
+        if (e->facingDir == DIR_IDLE) {
+            currentFrame = texAtiradorIdle;
+        } else {
+             switch (e->facingDir) {
+                case DIR_LEFT:
+                    currentFrame = texAtiradorLeft[e->frame];
+                    break;
+                case DIR_RIGHT:
+                case DIR_UP: // Se está olhando para cima/baixo, usa o sprite da direita/esquerda
+                case DIR_DOWN:
+                    currentFrame = texAtiradorRight[e->frame]; 
+                    break;
+                default:
+                    currentFrame = texAtiradorIdle;
+                    break;
+            }
+        }
+    }
     else { currentFrame = texPadraoIdle; }
     
     DrawTextureEx(currentFrame, e->pos, 0.0f, e->escala, e->tint);

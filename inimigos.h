@@ -56,5 +56,6 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos);
 void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH, int borderTop, int borderBottom, int borderLeft, int borderRight);
 void DrawInimigo(Inimigo *e);
 Rectangle GetInimigoHitbox(Inimigo *e);
+void SpawnProjetilAtirador(Vector2 startPos, Vector2 direction);
 
 #endif
