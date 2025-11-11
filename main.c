@@ -5,6 +5,7 @@
 #include "raymath.h"
 
 #define MAX_INIMIGOS 3
+#define MAX_PROJETEIS 150
 
 typedef enum {
     TELA_TITULO,
@@ -12,6 +13,79 @@ typedef enum {
     TELA_JOGO,
     TELA_GAME_OVER 
 } EstadoJogo;
+
+typedef struct {
+    Vector2 pos;
+    Vector2 velocity; 
+    float speed;
+    int dano;
+    bool active;
+    Rectangle bounds;
+    float escala; 
+} Projetil;
+
+Projetil projeteis[MAX_PROJETEIS];
+Texture2D texProjetilBorracha; 
+
+void SpawnProjetilAtirador(Vector2 startPos, Vector2 direction) {
+    for (int i = 0; i < MAX_PROJETEIS; i++) {
+        if (!projeteis[i].active) {
+            
+            // Ajuste de escala para o projétil
+            projeteis[i].escala = 0.05f; 
+            
+            // Move o ponto inicial para fora do corpo do atirador
+            projeteis[i].pos = Vector2Add(startPos, Vector2Scale(direction, 10.0f)); 
+            
+            projeteis[i].velocity = direction;
+            projeteis[i].speed = 5.0f;
+            projeteis[i].dano = 1;
+            projeteis[i].active = true;
+            
+            // Define bounds usando a escala
+            float projW = texProjetilBorracha.width * projeteis[i].escala;
+            float projH = texProjetilBorracha.height * projeteis[i].escala;
+            projeteis[i].bounds = (Rectangle){ projeteis[i].pos.x, projeteis[i].pos.y, projW, projH };
+            break;
+        }
+    }
+}
+
+void UpdateProjeteis(Rabisco *r, int mapW, int mapH, int borderTop, int borderBottom, int borderLeft, int borderRight) {
+    for (int i = 0; i < MAX_PROJETEIS; i++) {
+        if (projeteis[i].active) {
+            // Movimento
+            projeteis[i].pos = Vector2Add(projeteis[i].pos, Vector2Scale(projeteis[i].velocity, projeteis[i].speed));
+            
+            // Atualizar bounds (movimento)
+            projeteis[i].bounds.x = projeteis[i].pos.x;
+            projeteis[i].bounds.y = projeteis[i].pos.y;
+            
+            // Colisão com Rabisco (Usando GetRabiscoAttackHitbox como hitbox do Rabisco para colisão)
+            if (CheckCollisionRecs(projeteis[i].bounds, GetRabiscoAttackHitbox(r))) {
+                r->currentHitPoints -= projeteis[i].dano;
+                projeteis[i].active = false;
+            }
+            
+            // Desativar projétil se sair dos limites do mapa
+            if (projeteis[i].pos.x < borderLeft || projeteis[i].pos.x > mapW - borderRight ||
+                projeteis[i].pos.y < borderTop || projeteis[i].pos.y > mapH - borderBottom) {
+                projeteis[i].active = false;
+            }
+        }
+    }
+}
+
+// --- LÓGICA DE DESENHO DOS PROJÉTEIS ---
+
+void DrawProjeteis() {
+    for (int i = 0; i < MAX_PROJETEIS; i++) {
+        if (projeteis[i].active) {
+            DrawTextureEx(texProjetilBorracha, projeteis[i].pos, 0.0f, projeteis[i].escala, WHITE);
+        }
+    }
+}
+
 
 // função p/ reiniciar o estado do jogador e dos inimigos
 void ResetJogo(Rabisco *rabisco, Inimigo inimigos[], int maxInimigos, Texture2D mapa) {
@@ -32,8 +106,14 @@ void ResetJogo(Rabisco *rabisco, Inimigo inimigos[], int maxInimigos, Texture2D 
         } else if (i == 1) {
             SpawnInimigo(&inimigos[i], TIPO_ARANHA, pos);
         } else {
-            SpawnInimigo(&inimigos[i], TIPO_PADRAO, pos);
+            // Spawna o novo inimigo atirador
+            SpawnInimigo(&inimigos[i], TIPO_ATIRADOR_BORRACHA, pos); 
         }
+    }
+    
+    // Resetar Projéteis
+    for (int i = 0; i < MAX_PROJETEIS; i++) {
+        projeteis[i].active = false;
     }
 }
 
@@ -84,6 +164,9 @@ int main() {
 
     InitInimigoAssets(); 
     Inimigo inimigos[MAX_INIMIGOS]; 
+    
+    // CARREGAR TEXTURA DO PROJÉTIL
+    texProjetilBorracha = LoadTexture("images/inimigo_borracha_tiro.png");
 
 
     ResetJogo(&rabisco, inimigos, MAX_INIMIGOS, mapa);
@@ -169,6 +252,9 @@ int main() {
             bool rabiscoAtacou = UpdateRabisco(&rabisco, mapa.width, mapa.height,
                                                mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
 
+            // ATUALIZAÇÃO DO PROJÉTIL
+            UpdateProjeteis(&rabisco, mapa.width, mapa.height, mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
+
             for (int i = 0; i < MAX_INIMIGOS; i++) {
                 UpdateInimigo(&inimigos[i], &rabisco, mapa.width, mapa.height,
                               mapBorderTop, mapBorderBottom, 
@@ -207,6 +293,9 @@ int main() {
             BeginMode2D(camera);
                 DrawTexture(mapa, 0, 0, WHITE);
                 
+                // DESENHO DOS PROJÉTEIS
+                DrawProjeteis();
+
                 for (int i = 0; i < MAX_INIMIGOS; i++) {
                     DrawInimigo(&inimigos[i]);
                 }
@@ -334,6 +423,7 @@ int main() {
 
         EndDrawing();
     }
+    UnloadTexture(texProjetilBorracha);
 
     UnloadMusicStream(music); 
     for (int i = 0; i < 4; i++) UnloadTexture(tituloFrames[i]);
