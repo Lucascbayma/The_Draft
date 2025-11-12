@@ -51,7 +51,7 @@ void InitInimigoAssets(void) {
         texAranhaLeft[i] = LoadTexture(f);
     }
 
-    texAtiradorIdle = LoadTexture("images/inimigo_borracha_direita_idle.png");
+    texAtiradorIdle = LoadTexture("images/inimigo_borracha_direita1.png");
     for (int i = 0; i < FRAME_COUNT_ATIRADOR; i++) {
         char f[64];
         sprintf(f, "images/inimigo_borracha_direita%d.png", i + 1);
