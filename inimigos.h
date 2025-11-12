@@ -11,7 +11,7 @@ typedef enum {
     TIPO_ATIRADOR_BORRACHA
 } InimigoType;
 
-// NOVO: Enum para o estado da aranha
+
 typedef enum {
     SPIDER_IDLE,
     SPIDER_MOVING,
