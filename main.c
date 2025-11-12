@@ -281,8 +281,8 @@ int main() {
             camera.target.x += (desiredTarget.x - camera.target.x) * 0.15f;
             camera.target.y += (desiredTarget.y - camera.target.y) * 0.15f;
 
-            float halfWidth = screenW / (2.0f * camera.zoom);
-            float halfHeight = screenH / (2.0f * camera.zoom);
+            float halfWidth = screenW / (1.85f * camera.zoom);
+            float halfHeight = screenH / (1.85f * camera.zoom);
 
             if (camera.target.x < halfWidth) camera.target.x = halfWidth;
             if (camera.target.y < halfHeight) camera.target.y = halfHeight;
