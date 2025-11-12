@@ -29,7 +29,6 @@ typedef struct {
     float attackOffsetY;
     float attackOffsetX;
     
-    // TEXTURAS DA HUD 
     Texture2D heartFull;
     Texture2D heartBroken;
     Texture2D hollowHeart; 
@@ -45,6 +44,7 @@ void InitRabisco(Rabisco *r, float x, float y);
 bool UpdateRabisco(Rabisco *r, int mapW, int mapH, int borderTop, int borderBottom, int borderLeft, int borderRight); 
 void DrawRabisco(Rabisco *r);
 void UnloadRabisco(Rabisco *r);
+Rectangle GetRabiscoHitbox(Rabisco *r);
 Rectangle GetRabiscoAttackHitbox(Rabisco *r);
 
 #endif

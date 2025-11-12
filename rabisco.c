@@ -280,6 +280,9 @@ void UnloadRabisco(Rabisco *r){
     UnloadTexture(r->iconVel);
     UnloadFont(r->hudFont);
 }
+Rectangle GetRabiscoHitbox(Rabisco *r) {
+    return (Rectangle){ r->pos.x, r->pos.y, r->width, r->height };
+}
 
 Rectangle GetRabiscoAttackHitbox(Rabisco *r) {
     Rectangle hitbox;

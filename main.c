@@ -4,7 +4,7 @@
 #include "stdio.h"
 #include "raymath.h"
 
-#define MAX_INIMIGOS 3
+#define MAX_INIMIGOS 4
 #define MAX_PROJETEIS 150
 
 typedef enum {
@@ -24,6 +24,12 @@ typedef struct {
     float escala; 
 } Projetil;
 
+typedef struct {
+    Rectangle bounds;
+    bool isPressed;
+    float escala;
+} Button;
+
 Projetil projeteis[MAX_PROJETEIS];
 Texture2D texProjetilBorracha; 
 
@@ -31,10 +37,8 @@ void SpawnProjetilAtirador(Vector2 startPos, Vector2 direction) {
     for (int i = 0; i < MAX_PROJETEIS; i++) {
         if (!projeteis[i].active) {
             
-            // Ajuste de escala para o projétil
-            projeteis[i].escala = 0.05f; 
+            projeteis[i].escala = 0.05f;
             
-            // Move o ponto inicial para fora do corpo do atirador
             projeteis[i].pos = Vector2Add(startPos, Vector2Scale(direction, 10.0f)); 
             
             projeteis[i].velocity = direction;
@@ -42,10 +46,17 @@ void SpawnProjetilAtirador(Vector2 startPos, Vector2 direction) {
             projeteis[i].dano = 1;
             projeteis[i].active = true;
             
-            // Define bounds usando a escala
-            float projW = texProjetilBorracha.width * projeteis[i].escala;
-            float projH = texProjetilBorracha.height * projeteis[i].escala;
-            projeteis[i].bounds = (Rectangle){ projeteis[i].pos.x, projeteis[i].pos.y, projW, projH };
+            float hitboxSize = 7.0f; 
+            
+            float visualW = texProjetilBorracha.width * projeteis[i].escala;
+            float visualH = texProjetilBorracha.height * projeteis[i].escala;
+
+            projeteis[i].bounds.width = hitboxSize;
+            projeteis[i].bounds.height = hitboxSize;
+            
+            projeteis[i].bounds.x = projeteis[i].pos.x + (visualW / 2.0f) - (hitboxSize / 2.0f);
+            projeteis[i].bounds.y = projeteis[i].pos.y + (visualH / 2.0f) - (hitboxSize / 2.0f);
+            
             break;
         }
     }
@@ -54,20 +65,20 @@ void SpawnProjetilAtirador(Vector2 startPos, Vector2 direction) {
 void UpdateProjeteis(Rabisco *r, int mapW, int mapH, int borderTop, int borderBottom, int borderLeft, int borderRight) {
     for (int i = 0; i < MAX_PROJETEIS; i++) {
         if (projeteis[i].active) {
-            // Movimento
+            
             projeteis[i].pos = Vector2Add(projeteis[i].pos, Vector2Scale(projeteis[i].velocity, projeteis[i].speed));
             
-            // Atualizar bounds (movimento)
-            projeteis[i].bounds.x = projeteis[i].pos.x;
-            projeteis[i].bounds.y = projeteis[i].pos.y;
+            float visualW = texProjetilBorracha.width * projeteis[i].escala;
+            float visualH = texProjetilBorracha.height * projeteis[i].escala;
             
-            // Colisão com Rabisco (Usando GetRabiscoAttackHitbox como hitbox do Rabisco para colisão)
-            if (CheckCollisionRecs(projeteis[i].bounds, GetRabiscoAttackHitbox(r))) {
+            projeteis[i].bounds.x = projeteis[i].pos.x + (visualW / 2.0f) - (projeteis[i].bounds.width / 2.0f);
+            projeteis[i].bounds.y = projeteis[i].pos.y + (visualH / 2.0f) - (projeteis[i].bounds.height / 2.0f);
+            
+            if (CheckCollisionRecs(projeteis[i].bounds, GetRabiscoHitbox(r))) { 
                 r->currentHitPoints -= projeteis[i].dano;
                 projeteis[i].active = false;
             }
             
-            // Desativar projétil se sair dos limites do mapa
             if (projeteis[i].pos.x < borderLeft || projeteis[i].pos.x > mapW - borderRight ||
                 projeteis[i].pos.y < borderTop || projeteis[i].pos.y > mapH - borderBottom) {
                 projeteis[i].active = false;
@@ -75,8 +86,6 @@ void UpdateProjeteis(Rabisco *r, int mapW, int mapH, int borderTop, int borderBo
         }
     }
 }
-
-// --- LÓGICA DE DESENHO DOS PROJÉTEIS ---
 
 void DrawProjeteis() {
     for (int i = 0; i < MAX_PROJETEIS; i++) {
@@ -86,32 +95,19 @@ void DrawProjeteis() {
     }
 }
 
-
-// função p/ reiniciar o estado do jogador e dos inimigos
 void ResetJogo(Rabisco *rabisco, Inimigo inimigos[], int maxInimigos, Texture2D mapa) {
 
-    rabisco->pos = (Vector2){ mapa.width / 2.0f, mapa.height / 2.0f };
+    rabisco->pos = (Vector2){ mapa.width / 2.0f, mapa.height / 2.0f + 100.0f };
     rabisco->currentHitPoints = rabisco->maxHeartContainers * 2; 
     rabisco->moedas = 0;
     rabisco->facingDir = DIR_DOWN;
     rabisco->attackTimer = 0.0f;
     rabisco->attackDurationTimer = 0.0f;
     
-
     for (int i = 0; i < maxInimigos; i++) {
-        Vector2 pos = (Vector2){ (float)GetRandomValue(200, mapa.width - 200), (float)GetRandomValue(200, mapa.height - 200) };
-        
-        if (i == 0) {
-            SpawnInimigo(&inimigos[i], TIPO_TANQUE, pos);
-        } else if (i == 1) {
-            SpawnInimigo(&inimigos[i], TIPO_ARANHA, pos);
-        } else {
-            // Spawna o novo inimigo atirador
-            SpawnInimigo(&inimigos[i], TIPO_ATIRADOR_BORRACHA, pos); 
-        }
+        inimigos[i].active = false;
     }
     
-    // Resetar Projéteis
     for (int i = 0; i < MAX_PROJETEIS; i++) {
         projeteis[i].active = false;
     }
@@ -138,7 +134,7 @@ int main() {
     const int tamanhoFonteTitulo = 30; 
     Font fontTitulo = LoadFontEx("assets/PatrickHandSC-Regular.ttf", tamanhoFonteTitulo, NULL, 0); 
 
-    Music music = LoadMusicStream("audio/music/the_draft_music.mp3");
+    Music music = LoadMusicStream("audio/music/the_draft_music.ogg");
     music.looping = true;
     float musicVolume = 0.5f; 
     SetMusicVolume(music, musicVolume);
@@ -151,7 +147,7 @@ int main() {
     EstadoJogo estado = TELA_TITULO;
     float alphaTransicao = 0.0f; 
     
-    int opcaoGameOver = 0; // 0 = Jogar de novo, 1 = Voltar ao menu
+    int opcaoGameOver = 0;
 
     const int mapBorderTop = 65;
     const int mapBorderBottom = 120;
@@ -165,9 +161,20 @@ int main() {
     InitInimigoAssets(); 
     Inimigo inimigos[MAX_INIMIGOS]; 
     
-    // CARREGAR TEXTURA DO PROJÉTIL
     texProjetilBorracha = LoadTexture("images/inimigo_borracha_tiro.png");
 
+    Texture2D texButtonUp = LoadTexture("images/button1.png");
+    Texture2D texButtonDown = LoadTexture("images/button2.png");
+    
+    Button spawnButton;
+    spawnButton.escala = 0.6f; 
+    spawnButton.isPressed = false;
+    spawnButton.bounds = (Rectangle){ 
+        mapa.width / 2.0f - (texButtonUp.width * spawnButton.escala / 2.0f),
+        mapa.height / 3.0f-200.0f,
+        (float)texButtonUp.width * spawnButton.escala, 
+        (float)texButtonUp.height * spawnButton.escala 
+    };
 
     ResetJogo(&rabisco, inimigos, MAX_INIMIGOS, mapa);
 
@@ -187,7 +194,6 @@ int main() {
         ClearBackground(BLACK);
 
         if (estado == TELA_TITULO) {
-
             tempoFrame += GetFrameTime();
             if (tempoFrame >= duracaoFrame) {
                 tempoFrame = 0.0f;
@@ -216,7 +222,6 @@ int main() {
         }
 
         else if (estado == TELA_TRANSICAO) {
-
             Texture2D frame = tituloFrames[frameAtual];
             float scaleX = (float)screenW / frame.width;
             float scaleY = (float)screenH / frame.height;
@@ -236,8 +241,6 @@ int main() {
         }
 
         else if (estado == TELA_JOGO) {
-
-            
             if (IsKeyPressed(KEY_MINUS)) {
                 musicVolume -= 0.1f;
                 if (musicVolume < 0.0f) musicVolume = 0.0f;
@@ -252,14 +255,59 @@ int main() {
             bool rabiscoAtacou = UpdateRabisco(&rabisco, mapa.width, mapa.height,
                                                mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
 
-            // ATUALIZAÇÃO DO PROJÉTIL
             UpdateProjeteis(&rabisco, mapa.width, mapa.height, mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
 
+            int activeEnemies = 0;
             for (int i = 0; i < MAX_INIMIGOS; i++) {
-                UpdateInimigo(&inimigos[i], &rabisco, mapa.width, mapa.height,
-                              mapBorderTop, mapBorderBottom, 
-                              mapBorderLeft, mapBorderRight);
+                if (inimigos[i].active) {
+                    UpdateInimigo(&inimigos[i], &rabisco, mapa.width, mapa.height,
+                                  mapBorderTop, mapBorderBottom, 
+                                  mapBorderLeft, mapBorderRight);
+                    activeEnemies++;
+                }
             }
+            
+            
+            float playerHitboxSize = 10.0f;
+            Rectangle rabiscoBoundsForButton = {
+                rabisco.pos.x + (rabisco.width / 2.0f) - (playerHitboxSize / 2.0f),
+                rabisco.pos.y + rabisco.height - playerHitboxSize,
+                playerHitboxSize,
+                playerHitboxSize
+            };
+            
+            // 2. Hitbox "justa" (apertada) para o Botão
+            // (Ajuste 'buttonHitboxW' e 'buttonHitboxH' para o tamanho que você quer)
+            float buttonHitboxW = 30.0f;
+            float buttonHitboxH = 30.0f;
+            Rectangle buttonHitbox = {
+                spawnButton.bounds.x + (spawnButton.bounds.width / 2.0f) - (buttonHitboxW / 2.0f), // Centro X
+                spawnButton.bounds.y + (spawnButton.bounds.height / 2.0f) - (buttonHitboxH / 2.0f), // Centro Y
+                buttonHitboxW,
+                buttonHitboxH
+            };
+            
+            // 3. Verifica se a rodada acabou
+            if (activeEnemies == 0) {
+                spawnButton.isPressed = false;
+            }
+
+            // 4. Usa as DUAS hitboxes pequenas para a colisão
+            if (!spawnButton.isPressed && CheckCollisionRecs(rabiscoBoundsForButton, buttonHitbox)) {
+                spawnButton.isPressed = true;
+                
+                // ... (código de spawn dos 4 inimigos) ...
+                Vector2 pos0 = (Vector2){ (float)GetRandomValue(200, mapa.width - 200), (float)GetRandomValue(200, mapa.height - 200) };
+                Vector2 pos1 = (Vector2){ (float)GetRandomValue(200, mapa.width - 200), (float)GetRandomValue(200, mapa.height - 200) };
+                Vector2 pos2 = (Vector2){ (float)GetRandomValue(200, mapa.width - 200), (float)GetRandomValue(200, mapa.height - 200) };
+                Vector2 pos3 = (Vector2){ (float)GetRandomValue(200, mapa.width - 200), (float)GetRandomValue(200, mapa.height - 200) };
+
+                SpawnInimigo(&inimigos[0], TIPO_PADRAO, pos0);
+                SpawnInimigo(&inimigos[1], TIPO_TANQUE, pos1);
+                SpawnInimigo(&inimigos[2], TIPO_ARANHA, pos2);
+                SpawnInimigo(&inimigos[3], TIPO_ATIRADOR_BORRACHA, pos3);
+            }
+            // --- FIM DA LÓGICA DO BOTÃO ---
 
             if (rabiscoAtacou) {
                 Rectangle attackBox = GetRabiscoAttackHitbox(&rabisco);
@@ -276,7 +324,6 @@ int main() {
                 if (inimigos[i].tint.r == RED.r) inimigos[i].tint = WHITE;
             }
 
-
             Vector2 desiredTarget = rabisco.pos;
             camera.target.x += (desiredTarget.x - camera.target.x) * 0.15f;
             camera.target.y += (desiredTarget.y - camera.target.y) * 0.15f;
@@ -289,12 +336,13 @@ int main() {
             if (camera.target.x > mapa.width - halfWidth) camera.target.x = mapa.width - halfWidth;
             if (camera.target.y > mapa.height - halfHeight) camera.target.y = mapa.height - halfHeight;
 
-
             BeginMode2D(camera);
                 DrawTexture(mapa, 0, 0, WHITE);
                 
-                // DESENHO DOS PROJÉTEIS
                 DrawProjeteis();
+                
+                Texture2D texBtn = spawnButton.isPressed ? texButtonDown : texButtonUp;
+                DrawTextureEx(texBtn, (Vector2){spawnButton.bounds.x, spawnButton.bounds.y}, 0.0f, spawnButton.escala, WHITE);
 
                 for (int i = 0; i < MAX_INIMIGOS; i++) {
                     DrawInimigo(&inimigos[i]);
@@ -304,6 +352,7 @@ int main() {
 
             int padding = 20;
             int heartSize = 70;
+            
             for (int i = 0; i < rabisco.maxHeartContainers; i++) {
                 Texture2D heartTexture;
                 int heartValue = i * 2;
@@ -370,17 +419,12 @@ int main() {
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x, rangeValuePos.y + 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, rangeValue, rangeValuePos, statusFontSize, spacing, WHITE);
 
-
-            // verificação de morte
             if (rabisco.currentHitPoints <= 0) {
                 estado = TELA_GAME_OVER;
                 opcaoGameOver = 0; 
             }
-
-            
         }
         
-        // game over
         else if (estado == TELA_GAME_OVER) {
 
             if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
@@ -391,12 +435,12 @@ int main() {
             }
             
             if (IsKeyPressed(KEY_ENTER)) {
-                // Reseta o jogo independentemente da escolha
                 ResetJogo(&rabisco, inimigos, MAX_INIMIGOS, mapa);
+                spawnButton.isPressed = false; // Garante que o botão resete
                 
-                if (opcaoGameOver == 0) { // Jogar de novo
+                if (opcaoGameOver == 0) {
                     estado = TELA_JOGO;
-                } else { // Voltar ao menu
+                } else {
                     estado = TELA_TITULO;
                 }
             }
@@ -407,19 +451,16 @@ int main() {
             Vector2 tamTitulo = MeasureTextEx(fontTitulo, tituloGO, 80, 5);
             DrawTextEx(fontTitulo, tituloGO, (Vector2){(screenW - tamTitulo.x) / 2, screenH/2 - 100}, 80, 5, RED);
 
-            // Opção 1: Jogar de novo
             const char *opcao1 = "Jogar de novo";
             Vector2 tamOp1 = MeasureTextEx(fontTitulo, opcao1, 40, 5);
             DrawTextEx(fontTitulo, opcao1, (Vector2){(screenW - tamOp1.x) / 2, screenH/2 + 20}, 40, 5, 
                        (opcaoGameOver == 0 ? YELLOW : WHITE)); 
 
-            // Opção 2: Voltar ao Menu
             const char *opcao2 = "Voltar ao Menu";
             Vector2 tamOp2 = MeasureTextEx(fontTitulo, opcao2, 40, 5);
             DrawTextEx(fontTitulo, opcao2, (Vector2){(screenW - tamOp2.x) / 2, screenH/2 + 80}, 40, 5,
                        (opcaoGameOver == 1 ? YELLOW : WHITE)); 
         }
-
 
         EndDrawing();
     }
@@ -428,6 +469,9 @@ int main() {
     UnloadMusicStream(music); 
     for (int i = 0; i < 4; i++) UnloadTexture(tituloFrames[i]);
     UnloadTexture(fundoPreto);
+    
+    UnloadTexture(texButtonUp);
+    UnloadTexture(texButtonDown);
     
     UnloadInimigoAssets(); 
     
