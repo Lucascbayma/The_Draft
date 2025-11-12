@@ -8,6 +8,7 @@
 #define FRAME_COUNT_ARANHA 4
 #define FRAME_COUNT_ATIRADOR 8
 
+// ... (Declaração de texturas estáticas, sem alteração) ...
 static Texture2D texPadraoIdle;
 static Texture2D texPadraoLeft[FRAME_COUNT_PADRAO];
 static Texture2D texPadraoRight[FRAME_COUNT_PADRAO];
@@ -17,13 +18,13 @@ static Texture2D texTanqueRight[FRAME_COUNT_TANQUE];
 static Texture2D texAranhaIdle;
 static Texture2D texAranhaLeft[FRAME_COUNT_ARANHA];
 static Texture2D texAranhaRight[FRAME_COUNT_ARANHA];
-
 static Texture2D texAtiradorIdle;
 static Texture2D texAtiradorLeft[FRAME_COUNT_ATIRADOR];
 static Texture2D texAtiradorRight[FRAME_COUNT_ATIRADOR];
 static Texture2D texProjetilBorracha; 
 
 void InitInimigoAssets(void) {
+    // ... (Código de InitInimigoAssets, sem alteração) ...
     texPadraoIdle = LoadTexture("images/inimigo_base_direita1.png");
     for (int i = 0; i < FRAME_COUNT_PADRAO; i++) {
         char f[64];
@@ -63,6 +64,7 @@ void InitInimigoAssets(void) {
 }
 
 void UnloadInimigoAssets(void) {
+    // ... (Código de UnloadInimigoAssets, sem alteração) ...
     UnloadTexture(texPadraoIdle);
     for (int i = 0; i < FRAME_COUNT_PADRAO; i++) {
         UnloadTexture(texPadraoRight[i]);
@@ -90,6 +92,7 @@ void UnloadInimigoAssets(void) {
 }
 
 void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
+    // ... (Código de SpawnInimigo, sem alteração) ...
     e->tipo = tipo;
     e->pos = pos;
     e->escala = 0.10f;
@@ -157,7 +160,7 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             e->vida = 5;
             e->maxVida = 2;
             e->dano = 1;
-            e->velocidade = 1.5f; 
+            e->velocidade = 1.8f; 
             e->distanciaAtaque = 400.0f; 
             e->velAtaque = 1.75f; 
             e->frameCount = FRAME_COUNT_ATIRADOR;
@@ -194,13 +197,11 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
     
     Vector2 move = {0, 0};
     
-    // Variável para rastrear se o inimigo tem um comportamento ativo (olhar/mirar)
     bool isMovingOrLooking = false;
     
-    // --- LÓGICA DE MOVIMENTO/ATAQUE (TODOS OS TIPOS) ---
     
     if (e->tipo == TIPO_PADRAO || e->tipo == TIPO_TANQUE) {
-        // Lógica para Padrão e Tanque (Perseguição Melee)
+        // ... (Lógica do Padrão e Tanque, sem alteração) ...
         if (dist < chaseRadius && dist > e->distanciaAtaque) {
             move = Vector2Normalize(Vector2Subtract(r->pos, e->pos));
             e->pos.x += move.x * e->velocidade; 
@@ -212,9 +213,7 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
         }
     }
     
-    // --- LÓGICA DA ARANHA (TIPO_ARANHA) ---
     else if (e->tipo == TIPO_ARANHA) {
-        
         e->attackTriggerTimer += dt;
         if (e->attackTriggerTimer >= 5.0f) {
             e->attackTriggerTimer = 0.0f; 
@@ -336,38 +335,76 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
             }
         }
     }
-    
-    // --- LÓGICA DO ATIRADOR BORRACHA ---
+
     else if (e->tipo == TIPO_ATIRADOR_BORRACHA) {
         
         Vector2 dirToRabisco = Vector2Normalize(Vector2Subtract(r->pos, e->pos));
         
-        // 1. DEFINIR PARA ONDE ESTÁ OLHANDO (Sempre em direção ao Rabisco)
+        // 1. DEFINIR PARA ONDE ESTÁ OLHANDO
         if (fabs(dirToRabisco.x) > fabs(dirToRabisco.y)) {
             e->facingDir = (dirToRabisco.x > 0) ? DIR_RIGHT : DIR_LEFT;
         } else {
-            // Se estiver olhando para cima ou baixo, usaremos os sprites DIR_RIGHT ou DIR_LEFT no Draw
             e->facingDir = (dirToRabisco.y > 0) ? DIR_DOWN : DIR_UP; 
         }
-        isMovingOrLooking = true; // Sempre ativo (olhando ou atirando)
+        isMovingOrLooking = true;
 
         // 2. Fuga se o jogador estiver muito perto
         if (dist < 320.0f) {
-             move = Vector2Scale(dirToRabisco, -1.0f); // Fuga (afastando-se)
+             move = Vector2Scale(dirToRabisco, -1.0f); 
+             
+             // logica de não bater nas paredes
+             float texW = e->bounds.width;
+             float texH = e->bounds.height;
+             
+             // Calcula a próxima posição potencial
+             float nextX = e->pos.x + (move.x * e->velocidade);
+             float nextY = e->pos.y + (move.y * e->velocidade);
+
+             // Verifica quais bordas o borracha atingiria
+             bool hitLeft = (nextX < borderLeft);
+             bool hitRight = (nextX > mapW - borderRight - texW);
+             bool hitTop = (nextY < borderTop);
+             bool hitBottom = (nextY > mapH - borderBottom - texH);
+
+             // Se bater em uma parede horizontal (esquerda/direita)
+             if (hitLeft || hitRight) {
+                 move.x = 0; // Para o movimento horizontal
+                 
+                 // Se não estiver batendo em uma parede vertical, desliza
+                 if (!hitTop && !hitBottom) {
+                     if (fabs(move.y) < 0.1f) {
+                         move.y = (GetRandomValue(0, 1) == 0) ? 1.0f : -1.0f;
+                     }
+                 }
+             }
+             
+
+             if (hitTop || hitBottom) {
+                 move.y = 0; 
+
+                 if (!hitLeft && !hitRight) {
+
+                     if (fabs(move.x) < 0.1f) {
+                         move.x = (GetRandomValue(0, 1) == 0) ? 1.0f : -1.0f;
+                     }
+                 }
+             }
+             
+             if (Vector2LengthSqr(move) > 0) {
+                 move = Vector2Normalize(move);
+             }
              e->pos.x += move.x * e->velocidade; 
              e->pos.y += move.y * e->velocidade;
         } 
-        // 3. Tiro se estiver no alcance de ataque (e não estiver muito perto)
-        else if (dist < e->distanciaAtaque && e->attackTimer <= 0) {
+
+        if (dist < e->distanciaAtaque && e->attackTimer <= 0) {
             SpawnProjetilAtirador(e->pos, dirToRabisco); 
             e->attackTimer = e->velAtaque; 
-            // Não há movimento, 'move' permanece {0, 0}
         }
     }
-    // Roda se houve movimento OU se o inimigo tem um comportamento ativo (Atirador/Aranha)
+    
     if (Vector2Distance(move, (Vector2){0, 0}) != 0 || isMovingOrLooking) {
         
-        // Se houver movimento, atualiza facingDir (para Padrão/Tanque/Aranha no estado MOVING)
         if (Vector2Distance(move, (Vector2){0, 0}) != 0 && e->tipo != TIPO_ATIRADOR_BORRACHA) {
             if (fabs(move.x) > fabs(move.y)) {
                 e->facingDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
@@ -454,7 +491,6 @@ void DrawInimigo(Inimigo *e) {
     
     else if (e->tipo == TIPO_ATIRADOR_BORRACHA) { 
         
-        // Verifica se a direção é Idle (não está fugindo nem mirando)
         if (e->facingDir == DIR_IDLE) {
             currentFrame = texAtiradorIdle;
         } else {
@@ -463,7 +499,7 @@ void DrawInimigo(Inimigo *e) {
                     currentFrame = texAtiradorLeft[e->frame];
                     break;
                 case DIR_RIGHT:
-                case DIR_UP: // Se está olhando para cima/baixo, usa o sprite da direita/esquerda
+                case DIR_UP: 
                 case DIR_DOWN:
                     currentFrame = texAtiradorRight[e->frame]; 
                     break;
