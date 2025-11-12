@@ -153,10 +153,10 @@ int main() {
     
     int opcaoGameOver = 0; // 0 = Jogar de novo, 1 = Voltar ao menu
 
-    const int mapBorderTop = 45;
+    const int mapBorderTop = 65;
     const int mapBorderBottom = 120;
-    const int mapBorderLeft = 100;
-    const int mapBorderRight = 140;
+    const int mapBorderLeft = 110;
+    const int mapBorderRight = 110;
 
     Texture2D mapa = LoadTexture("images/mapa.png");
     Rabisco rabisco;
