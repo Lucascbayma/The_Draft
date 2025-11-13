@@ -37,7 +37,7 @@ void SpawnProjetilAtirador(Vector2 startPos, Vector2 direction) {
     for (int i = 0; i < MAX_PROJETEIS; i++) {
         if (!projeteis[i].active) {
             
-            projeteis[i].escala = 0.05f;
+            projeteis[i].escala = 0.04f;
             
             projeteis[i].pos = Vector2Add(startPos, Vector2Scale(direction, 10.0f)); 
             

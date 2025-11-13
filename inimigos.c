@@ -154,12 +154,12 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             
         case TIPO_ATIRADOR_BORRACHA:
             e->escala = 0.10f;
-            e->vida = 5;
+            e->vida = 4;
             e->maxVida = 2;
             e->dano = 1;
             e->velocidade = 1.8f; 
             e->distanciaAtaque = 400.0f; 
-            e->velAtaque = 1.75f; 
+            e->velAtaque = 2.75f; 
             e->frameCount = FRAME_COUNT_ATIRADOR;
             texW = (float)texAtiradorIdle.width;
             texH = (float)texAtiradorIdle.height;
