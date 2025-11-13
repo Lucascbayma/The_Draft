@@ -25,12 +25,12 @@ static Texture2D texProjetilBorracha;
 
 static Texture2D texNascimento[FRAME_COUNT_NASCIMENTO];
 
-// --- NOVAS CONSTANTES DE NASCIMENTO ---
-static const float spawnFrameDelay = 0.15f; // Velocidade da animação do lápis
-static const float spawnDuration = 2.0f;    // Duração total do estado "Nascendo" (2 segundos)
+static const float spawnFrameDelay = 0.15f; 
+static const float spawnDuration = 2.0f;    
 
 
 void InitInimigoAssets(void) {
+
     texPadraoIdle = LoadTexture("images/inimigo_base_direita1.png");
     for (int i = 0; i < FRAME_COUNT_PADRAO; i++) {
         char f[64];
@@ -76,6 +76,7 @@ void InitInimigoAssets(void) {
 }
 
 void UnloadInimigoAssets(void) {
+
     UnloadTexture(texPadraoIdle);
     for (int i = 0; i < FRAME_COUNT_PADRAO; i++) {
         UnloadTexture(texPadraoRight[i]);
@@ -114,7 +115,6 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
     e->active = true;
     e->attackTimer = 0;
     
-    // --- INICIALIZA O ESTADO DE NASCIMENTO ---
     e->estado = INIMIGO_NASCENDO;
     e->spawnFrame = 0;
     e->spawnFrameTime = 0.0f;
@@ -194,6 +194,7 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
 }
 
 Rectangle GetInimigoHitbox(Inimigo *e) {
+
     e->bounds.x = e->pos.x;
     e->bounds.y = e->pos.y;
     return e->bounds;
@@ -201,6 +202,7 @@ Rectangle GetInimigoHitbox(Inimigo *e) {
 
 void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int borderBottom,int borderLeft, int borderRight) 
 {
+
     if (!e->active) return;
 
     if (e->vida <= 0) {
@@ -211,15 +213,14 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
     
     if (e->estado == INIMIGO_NASCENDO) {
         
-
         e->spawnTimer -= GetFrameTime();
-
+        
         e->spawnFrameTime += GetFrameTime();
         if (e->spawnFrameTime >= spawnFrameDelay) {
             e->spawnFrameTime = 0.0f;
             e->spawnFrame = (e->spawnFrame + 1) % FRAME_COUNT_NASCIMENTO; 
         }
-
+        
         if (e->spawnTimer <= 0.0f) {
             e->estado = INIMIGO_ATIVO; 
         }
@@ -227,16 +228,13 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
         return; 
     }
 
-    
     if (e->attackTimer > 0) e->attackTimer -= GetFrameTime();
     
     float dist = Vector2Distance(e->pos, r->pos);
     float chaseRadius = 400.0f;
     float dt = GetFrameTime(); 
-    
     Vector2 move = {0, 0};
     bool isMovingOrLooking = false;
-    
     
     if (e->tipo == TIPO_PADRAO || e->tipo == TIPO_TANQUE) {
         if (dist < chaseRadius && dist > e->distanciaAtaque) {
@@ -249,72 +247,52 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
             e->attackTimer = e->velAtaque;
         }
     }
-    
     else if (e->tipo == TIPO_ARANHA) {
-        
         if (dist < 40.0f && e->attackTimer <= 0) {
             r->currentHitPoints -= e->dano; 
             e->attackTimer = e->velAtaque; 
         }
-        
         e->attackTriggerTimer += dt;
         if (e->attackTriggerTimer >= 5.0f) {
             e->attackTriggerTimer = 0.0f; 
-            
             if (GetRandomValue(0, 1) == 0) {
                 e->spiderState = SPIDER_ATTACKING;
                 e->actionTimer = 1.5f; 
                 e->actionDirection = Vector2Normalize(Vector2Subtract(r->pos, e->pos));
             }
         }
-        
         if (e->spiderState == SPIDER_IDLE) {
             e->movementTriggerTimer += dt;
-            
             float texW = e->bounds.width;
             float texH = e->bounds.height;
             bool naParedeEsquerda = (e->pos.x <= borderLeft + e->velocidade); 
             bool naParedeDireita = (e->pos.x >= mapW - borderRight - texW - e->velocidade);
             bool naParedeCima = (e->pos.y <= borderTop + e->velocidade);
             bool naParedeBaixo = (e->pos.y >= mapH - borderBottom - texH - e->velocidade);
-
-
             if (e->movementTriggerTimer >= 1.0f) {
                 e->movementTriggerTimer = 0.0f;
-                
                 int direcoesValidas[8] = {1, 2, 3, 4, 5, 6, 7, 8}; 
-                
                 if (naParedeEsquerda) { direcoesValidas[2] = 0; } 
                 if (naParedeDireita) { direcoesValidas[3] = 0; }
                 if (naParedeCima) { direcoesValidas[0] = 0; }
                 if (naParedeBaixo) { direcoesValidas[1] = 0; }
-
-
                 int choice;
                 int attempts = 0;
-                
                 do {
                     int index = GetRandomValue(1, 8); 
                     choice = direcoesValidas[index - 1]; 
-                    
                     attempts++;
                     if (attempts > 50) { 
                          choice = 5;
                          break;
                     }
                 } while (choice == 0);
-
-                
                 switch (choice) {
                     case 1: e->spiderState = SPIDER_MOVING; e->actionTimer = 0.45f; e->actionDirection = (Vector2){0, -1}; break;
                     case 2: e->spiderState = SPIDER_MOVING; e->actionTimer = 0.45f; e->actionDirection = (Vector2){0, 1}; break;
                     case 3: e->spiderState = SPIDER_MOVING; e->actionTimer = 0.45f; e->actionDirection = (Vector2){-1, 0}; break;
                     case 4: e->spiderState = SPIDER_MOVING; e->actionTimer = 0.45f; e->actionDirection = (Vector2){1, 0}; break;
-                    
-                    case 5: 
-                    case 6: 
-                    case 7: 
-                    case 8: 
+                    case 5: case 6: case 7: case 8: 
                         e->spiderState = SPIDER_IDLE; 
                         e->actionTimer = 0.0f; 
                         e->actionDirection = (Vector2){0, 0}; 
@@ -322,21 +300,15 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
                 }
             }
         }
-        
-        
         if (e->spiderState == SPIDER_ATTACKING || e->spiderState == SPIDER_MOVING) {
             e->actionTimer -= dt; 
-            
             if (e->actionTimer > 0.0f) {
-
                 move = e->actionDirection; 
                 Vector2 novaPos = e->pos;
                 novaPos.x += move.x * e->velocidade;
                 novaPos.y += move.y * e->velocidade;
-                
                 float texW = e->bounds.width;
                 float texH = e->bounds.height;
-
                 if (novaPos.x < borderLeft) {
                     e->pos.x = borderLeft + e->velocidade; 
                     e->spiderState = SPIDER_IDLE;
@@ -364,7 +336,6 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
                     e->pos.x += move.x * e->velocidade;
                     e->pos.y += move.y * e->velocidade;
                 }
-                
                 isMovingOrLooking = true; 
             } else {
                 e->spiderState = SPIDER_IDLE;
@@ -373,47 +344,32 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
             }
         }
     }
-    
-
     else if (e->tipo == TIPO_ATIRADOR_BORRACHA) {
-        
         Vector2 dirToRabisco = Vector2Normalize(Vector2Subtract(r->pos, e->pos));
         float idealDistanceMin = 200.0f; 
         float idealDistanceMax = 350.0f; 
-        
-
         if (fabs(dirToRabisco.x) > fabs(dirToRabisco.y)) {
             e->facingDir = (dirToRabisco.x > 0) ? DIR_RIGHT : DIR_LEFT;
         } else {
             e->facingDir = (dirToRabisco.y > 0) ? DIR_DOWN : DIR_UP; 
         }
         isMovingOrLooking = true; 
-
         if (dist < idealDistanceMin) {
-
             move = Vector2Scale(dirToRabisco, -1.0f); 
         } else if (dist > idealDistanceMax) {
-
             move = dirToRabisco; 
         } else {
-
             move = (Vector2){0, 0};
         }
-        
-
         e->pos.x += move.x * e->velocidade; 
         e->pos.y += move.y * e->velocidade;
-        
-
         if (dist < e->distanciaAtaque && e->attackTimer <= 0) {
             SpawnProjetilAtirador(e->pos, dirToRabisco); 
             e->attackTimer = e->velAtaque; 
         }
     }
-
     
     if (Vector2Distance(move, (Vector2){0, 0}) != 0 || isMovingOrLooking) {
-        
         if (Vector2Distance(move, (Vector2){0, 0}) != 0 && e->tipo != TIPO_ATIRADOR_BORRACHA) {
             if (fabs(move.x) > fabs(move.y)) {
                 e->facingDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
@@ -421,7 +377,6 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
                 e->facingDir = (move.y > 0) ? DIR_DOWN : DIR_UP;
             }
         }
-        
         e->frameTime += GetFrameTime();
         if (e->frameTime >= e->frameDelay) {
             e->frame = (e->frame + 1) % e->frameCount;
@@ -432,25 +387,22 @@ void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH,int borderTop, int
         e->facingDir = DIR_IDLE;
     }
 
-    // --- CHECAGEM DE LIMITES GERAL ---
     float texW = e->bounds.width;
     float texH = e->bounds.height;
-    
     if (e->pos.x < borderLeft) e->pos.x = borderLeft;
     if (e->pos.x > mapW - borderRight - texW) e->pos.x = mapW - borderRight - texW;
     if (e->pos.y < borderTop) e->pos.y = borderTop;
     if (e->pos.y > mapH - borderBottom - texH) e->pos.y = mapH - borderBottom - texH;
-    
     e->bounds.x = e->pos.x;
     e->bounds.y = e->pos.y;
 }
 
+
 void DrawInimigo(Inimigo *e) {
     if (!e->active) return;
     
-    Texture2D currentFrame;
-
-
+    Texture2D currentFrame; 
+    
     if (e->estado == INIMIGO_NASCENDO) {
 
         if (e->tipo == TIPO_PADRAO) currentFrame = texPadraoIdle;
@@ -458,7 +410,24 @@ void DrawInimigo(Inimigo *e) {
         else if (e->tipo == TIPO_ARANHA) currentFrame = texAranhaIdle;
         else if (e->tipo == TIPO_ATIRADOR_BORRACHA) currentFrame = texAtiradorIdle;
         else currentFrame = texPadraoIdle;
-    } else {
+
+        Texture2D spawnTex = texNascimento[e->spawnFrame]; 
+        
+
+        float inimigoW = currentFrame.width * e->escala;
+        float inimigoH = currentFrame.height * e->escala;
+        float spawnTexW = spawnTex.width * e->escala;
+        float spawnTexH = spawnTex.height * e->escala;
+        
+
+        float offsetX = (inimigoW / 2.0f) - (spawnTexW / 2.0f);
+        float offsetY = (inimigoH / 2.0f) - (spawnTexH / 2.0f);
+
+        Vector2 spawnPos = { e->pos.x + offsetX, e->pos.y + offsetY };
+        
+        DrawTextureEx(spawnTex, spawnPos, 0.0f, e->escala, WHITE);
+
+    } else if (e->estado == INIMIGO_ATIVO) {
 
         if (e->tipo == TIPO_PADRAO) {
             switch (e->facingDir) {
@@ -493,29 +462,9 @@ void DrawInimigo(Inimigo *e) {
             }
         }
         else { currentFrame = texPadraoIdle; }
-    }
-    
 
-    DrawTextureEx(currentFrame, e->pos, 0.0f, e->escala, e->tint);
-    
+        DrawTextureEx(currentFrame, e->pos, 0.0f, e->escala, e->tint);
 
-    if (e->estado == INIMIGO_NASCENDO) {
-        Texture2D spawnTex = texNascimento[e->spawnFrame]; 
-        
-        float inimigoW = currentFrame.width * e->escala;
-        float inimigoH = currentFrame.height * e->escala;
-        float spawnTexW = spawnTex.width * e->escala;
-        float spawnTexH = spawnTex.height * e->escala;
-        float offsetX = (inimigoW / 2.0f) - (spawnTexW / 2.0f);
-        float offsetY = (inimigoH / 2.0f) - (spawnTexH / 2.0f);
-
-        Vector2 spawnPos = { e->pos.x + offsetX, e->pos.y + offsetY };
-        
-
-        DrawTextureEx(spawnTex, spawnPos, 0.0f, e->escala, WHITE);
-    }
-    
-    if (e->estado == INIMIGO_ATIVO) {
         float healthPercent = (float)e->vida / (float)e->maxVida;
         if (healthPercent < 1.0f) {
             DrawRectangle(e->pos.x, e->pos.y - 10, e->bounds.width, 5, RED);
