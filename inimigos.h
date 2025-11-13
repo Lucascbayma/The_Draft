@@ -11,6 +11,11 @@ typedef enum {
     TIPO_ATIRADOR_BORRACHA
 } InimigoType;
 
+typedef enum {
+    INIMIGO_NASCENDO, 
+    INIMIGO_ATIVO    
+} InimigoEstado;
+
 
 typedef enum {
     SPIDER_IDLE,
@@ -41,12 +46,17 @@ typedef struct {
     float frameDelay;
     
     int frameCount;
-    
+
     SpiderState spiderState;   
     float attackTriggerTimer; 
     float movementTriggerTimer; 
     float actionTimer;          
     Vector2 actionDirection;  
+    
+    InimigoEstado estado;    
+    int spawnFrame;          
+    float spawnFrameTime;    
+    float spawnTimer;       
     
 } Inimigo;
 
