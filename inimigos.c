@@ -133,7 +133,7 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             
         case TIPO_ARANHA:
             e->escala = 0.05f;
-            e->vida = 10;
+            e->vida = 5;
             e->maxVida = 2;
             e->dano = 1; 
             e->velocidade = 10.5f; 
