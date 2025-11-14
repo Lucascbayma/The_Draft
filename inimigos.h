@@ -32,6 +32,7 @@ typedef struct {
     float velocidade;
     float distanciaAtaque;
     float velAtaque;
+    int scoreValue;
     
     bool active;
     Rectangle bounds;
@@ -63,7 +64,7 @@ typedef struct {
 void InitInimigoAssets(void);
 void UnloadInimigoAssets(void);
 void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos);
-void UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH, int borderTop, int borderBottom, int borderLeft, int borderRight);
+int UpdateInimigo(Inimigo *e, Rabisco *r, int mapW, int mapH, int borderTop, int borderBottom, int borderLeft, int borderRight);
 void DrawInimigo(Inimigo *e);
 Rectangle GetInimigoHitbox(Inimigo *e);
 void SpawnProjetilAtirador(Vector2 startPos, Vector2 direction);
