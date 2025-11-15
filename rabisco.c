@@ -83,15 +83,27 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
 { 
     Vector2 move = {0, 0};
     bool attackJustStarted = false;
+    int gamepad = 0; // O primeiro controle conectado
 
     if (r->attackTimer > 0) r->attackTimer -= GetFrameTime();
     if (r->attackDurationTimer > 0) r->attackDurationTimer -= GetFrameTime();
 
+    // --- 1. LÓGICA DE ATAQUE (TECLADO & GAMEPAD) ---
     int attackKey = 0;
+    
+    // Leitura do Teclado para Ataque
     if (IsKeyPressed(KEY_UP)) attackKey = KEY_UP;
     else if (IsKeyPressed(KEY_DOWN)) attackKey = KEY_DOWN;
     else if (IsKeyPressed(KEY_LEFT)) attackKey = KEY_LEFT;
     else if (IsKeyPressed(KEY_RIGHT)) attackKey = KEY_RIGHT;
+
+    // Leitura do Gamepad para Ataque (Botões Faciais)
+    if (IsGamepadAvailable(gamepad)) {
+        if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_RIGHT_FACE_UP)) attackKey = KEY_UP; // Triângulo
+        else if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) attackKey = KEY_DOWN; // X
+        else if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) attackKey = KEY_LEFT; // Quadrado
+        else if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT)) attackKey = KEY_RIGHT; // Bola
+    }
 
     if (r->attackTimer <= 0 && attackKey != 0) 
     {
@@ -109,15 +121,28 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
         }
     }
 
+    // --- LÓGICA DE MOVIMENTO ---
     if (IsKeyDown(KEY_D)) move.x += 1;
     if (IsKeyDown(KEY_A))  move.x -= 1;
     if (IsKeyDown(KEY_W))  move.y -= 1;
     if (IsKeyDown(KEY_S))  move.y += 1;
 
+    // Leitura para Movimento (Analógico Esquerdo)
+    if (IsGamepadAvailable(gamepad)) {
+        float axisX = GetGamepadAxisMovement(gamepad, GAMEPAD_AXIS_LEFT_X);
+        float axisY = GetGamepadAxisMovement(gamepad, GAMEPAD_AXIS_LEFT_Y);
+
+        const float deadzone = 0.2f; // Zona morta para evitar deslize
+        
+        if (fabs(axisX) > deadzone) move.x += axisX;
+        if (fabs(axisY) > deadzone) move.y += axisY;
+    }
+
     float len = sqrtf(move.x * move.x + move.y * move.y);
     bool isMoving = (len > 0);
 
     if (isMoving) {
+        // Normaliza o vetor de movimento se vier de teclado + analógico
         move.x /= len;
         move.y /= len;
     }
@@ -136,7 +161,9 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
     r->pos.x = Clamp(nextX, minX, maxX);
     r->pos.y = Clamp(nextY, minY, maxY);
 
+    // --- 3. LÓGICA DE ANIMAÇÃO E DIREÇÃO ---
     if(isMoving){
+        // Define lastDir (usada para escolher o sprite de caminhada)
         if(fabs(move.x) > fabs(move.y)){
             lastDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
         }else{
