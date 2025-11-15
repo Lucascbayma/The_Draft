@@ -135,7 +135,7 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             
         case TIPO_ARANHA:
             e->escala = 0.05f;
-            e->vida = 10;
+            e->vida = 6;
             e->maxVida = 8; 
             e->dano = 1; 
             e->velocidade = 10.5f; 
@@ -156,7 +156,7 @@ void SpawnInimigo(Inimigo *e, InimigoType tipo, Vector2 pos) {
             
         case TIPO_ATIRADOR_BORRACHA:
             e->escala = 0.10f;
-            e->vida = 5;
+            e->vida = 4;
             e->maxVida = 4; 
             e->dano = 1;
             e->velocidade = 1.8f; 
