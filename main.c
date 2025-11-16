@@ -19,7 +19,7 @@ typedef enum {
     TELA_GAME_OVER 
 } EstadoJogo;
 
-// --- ESTRUTURA E VARIÁVEIS DO PROJÉTIL  ---
+// --- ESTRUTURA E VARIÁVEIS DO PROJÉTIL ---
 typedef struct {
     Vector2 pos;
     Vector2 velocity; 
@@ -51,6 +51,10 @@ float chanceBonusOnda = 0.35f;
 ScoreEntry highScores[MAX_HIGH_SCORES];
 int finalScore = 0; 
 int currentScore = 0;
+
+// Variável para rastrear a letra ASCII selecionada (A-Z) 
+int selectedChar = 'A'; 
+static bool gamepadAxisReleased = true; // Para controlar a repetição do analógico
 
 
 // --- FUNÇÕES DE HIGH SCORE ---
@@ -158,7 +162,6 @@ void DrawProjeteis() {
 }
 
 
-
 // --- FUNÇÕES DE ONDA ---
 Vector2 GetRandomSpawnPosition(Rabisco *r, int mapW, int mapH, int bTop, int bBot, int bLeft, int bRight) {
     Vector2 pos;
@@ -208,7 +211,6 @@ void SpawnWave(int onda, Inimigo inimigos[], Rabisco *r, int mapW, int mapH, int
 }
 
 
-
 // --- RESET JOGO ---
 void ResetJogo(Rabisco *rabisco, Inimigo inimigos[], int maxInimigos, Texture2D mapa) {
     rabisco->pos = (Vector2){ mapa.width / 2.0f, mapa.height / 2.0f + 100.0f };
@@ -229,6 +231,10 @@ void ResetJogo(Rabisco *rabisco, Inimigo inimigos[], int maxInimigos, Texture2D 
     subOnda = 0;
     chanceBonusOnda = 0.35f;
     currentScore = 0;
+    
+    // Reseta a letra selecionada
+    selectedChar = 'A'; 
+    gamepadAxisReleased = true;
 }
 
 
@@ -347,15 +353,13 @@ int main() {
             // --- DETECÇÃO DE INÍCIO COM CONTROLE ---
             bool inputDetected = false;
             
-            // 1. Teclado/Mouse
             if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || 
                 IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
                 inputDetected = true;
             }
             
-            // 2. CONTROLE (Botão de ação principal ou universal)
             if (IsGamepadAvailable(0)) {
-                if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) ||
+                if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) || 
                     IsGamepadButtonPressed(0, GAMEPAD_BUTTON_UNKNOWN)) { 
                     inputDetected = true;
                 }
@@ -592,20 +596,60 @@ int main() {
                 blinkTimer = 0.0f;
                 showCursor = !showCursor;
             }
+            
+            // --- LÓGICA DE NAVEGAÇÃO ANALÓGICA ---
+            int gamepad = 0;
+            float axisY = IsGamepadAvailable(gamepad) ? GetGamepadAxisMovement(gamepad, GAMEPAD_AXIS_LEFT_Y) : 0.0f;
+            const float deadzone = 0.5f;
+
+            if (fabs(axisY) < deadzone) {
+                gamepadAxisReleased = true; // Permite a próxima mudança
+            } else if (gamepadAxisReleased) {
+                if (axisY < -deadzone) { // Analógico para CIMA
+                    selectedChar++;
+                    gamepadAxisReleased = false;
+                } else if (axisY > deadzone) { // Analógico para BAIXO
+                    selectedChar--;
+                    gamepadAxisReleased = false;
+                }
+            }
+
+            // Limites do Alfabeto (A-Z)
+            if (selectedChar > 'Z') selectedChar = 'A';
+            if (selectedChar < 'A') selectedChar = 'Z';
+            
+            // --- ENTRADA DE TECLADO E BACKSPACE ---
             int key = GetKeyPressed();
+            
+            // Leitura de Letras (Teclado)
             if ((key >= KEY_A && key <= KEY_Z) && (letterIndex < 3)) {
                 playerInitials[letterIndex] = (char)key;
                 letterIndex++;
             }
             
-            // --- DETECÇÃO DE BACKSPACE/DELETE COM CONTROLE ---
+            // BACKSPACE/DELETE (Teclado ou Quadrado/Square)
             if ((IsKeyPressed(KEY_BACKSPACE) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) && (letterIndex > 0)) {
                 letterIndex--;
                 playerInitials[letterIndex] = '_';
+                selectedChar = 'A'; // Reseta a letra selecionada
             }
             
-            // --- DETECÇÃO DE ENTER/CONFIRMAR COM CONTROLE ---
-            if (letterIndex == 3 && (IsKeyPressed(KEY_ENTER) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))) {
+            // --- CONFIRMAR SELEÇÃO DA LETRA ATUAL ---
+            bool confirmLetter = IsKeyPressed(KEY_ENTER) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
+
+            if (letterIndex < 3) {
+                playerInitials[letterIndex] = (char)selectedChar; // Visualiza a letra selecionada
+                
+                if (confirmLetter) {
+                    letterIndex++;
+                    if (letterIndex < 3) {
+                        selectedChar = 'A'; // Reseta para a próxima inicial
+                    }
+                }
+            }
+            
+            // --- CONFIRMAR SCORE FINAL ---
+            if (letterIndex == 3 && confirmLetter) {
                 AddNewScore(highScores, playerInitials, finalScore);
                 LoadHighScores(highScores);
                 estado = TELA_VER_SCORES;
@@ -676,7 +720,7 @@ int main() {
                 opcaoGameOver = 1;
             }
             
-            // --- CONFIRMAÇÃO COM CONTROLE  ---
+            // --- CONFIRMAÇÃO COM CONTROLE ---
             if (IsKeyPressed(KEY_ENTER) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
                 ResetJogo(&rabisco, inimigos, MAX_INIMIGOS, mapa);
                 spawnButton.isPressed = false; 
