@@ -161,6 +161,33 @@ void DrawProjeteis() {
     }
 }
 
+// --- FUNÇÃO DE COLISÃO ---
+void ResolveStaticCollision(Rabisco *r, Rectangle obstacleBounds) { 
+    Rectangle rabiscoHitbox = GetRabiscoHitbox(r);
+
+    if(CheckCollisionRecs(rabiscoHitbox, obstacleBounds)){
+        float overlapX = (rabiscoHitbox.width / 2.0f + obstacleBounds.width / 2.0f) - fabs((rabiscoHitbox.x + rabiscoHitbox.width/2.0f) - (obstacleBounds.x + obstacleBounds.width/2.0f));
+        float overlapY = (rabiscoHitbox.height / 2.0f + obstacleBounds.height / 2.0f) - fabs((rabiscoHitbox.y + rabiscoHitbox.height/2.0f) - (obstacleBounds.y + obstacleBounds.height/2.0f));
+        
+        float tinyPush = 0.01f;
+
+        if(overlapX < overlapY){
+            if(rabiscoHitbox.x < obstacleBounds.x){
+                r->pos.x -= overlapX + tinyPush; 
+            }else{ 
+                r->pos.x += overlapX + tinyPush; 
+            }
+        } 
+        else{
+            if(rabiscoHitbox.y < obstacleBounds.y){ 
+                r->pos.y -= overlapY + tinyPush; 
+            }else{ 
+                r->pos.y += overlapY + tinyPush; 
+            }
+        }
+    }
+}
+
 
 // --- FUNÇÕES DE ONDA ---
 Vector2 GetRandomSpawnPosition(Rabisco *r, int mapW, int mapH, int bTop, int bBot, int bLeft, int bRight) {
@@ -401,6 +428,16 @@ int main() {
             }
             bool rabiscoAtacou = UpdateRabisco(&rabisco, mapa.width, mapa.height,mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight); 
             UpdateProjeteis(&rabisco, mapa.width, mapa.height, mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
+            
+            // COLISÃO COM PEDESTAIS 
+            // A colisão é ativa SOMENTE quando a onda NÃO está ativa
+            if(subOnda == 0){
+                for(int i = 0; i < 4; i++){
+                    // Usa 0.001f para garantir que o Rabisco seja empurrado para a borda exata
+                    ResolveStaticCollision(&rabisco, pedestalRects[i]); 
+                }
+            }
+
             int activeEnemies = 0;
             for (int i = 0; i < MAX_INIMIGOS; i++) {
                 if (inimigos[i].active) {
