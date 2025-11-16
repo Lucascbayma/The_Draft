@@ -91,7 +91,7 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
     // --- 1. LÓGICA DE ATAQUE (TECLADO & GAMEPAD) ---
     int attackKey = 0;
     
-    // Leitura do Teclado para Ataque
+    // Leitura do Teclado para Ataque (SETA TECLADO)
     if (IsKeyPressed(KEY_UP)) attackKey = KEY_UP;
     else if (IsKeyPressed(KEY_DOWN)) attackKey = KEY_DOWN;
     else if (IsKeyPressed(KEY_LEFT)) attackKey = KEY_LEFT;
@@ -121,28 +121,36 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
         }
     }
 
-    // --- LÓGICA DE MOVIMENTO ---
+    // --- 2. LÓGICA DE MOVIMENTO (WASD, SETINHA e ANALÓGICO) ---
+    
+    // Leitura do Teclado (WASD)
     if (IsKeyDown(KEY_D)) move.x += 1;
     if (IsKeyDown(KEY_A))  move.x -= 1;
     if (IsKeyDown(KEY_W))  move.y -= 1;
     if (IsKeyDown(KEY_S))  move.y += 1;
-
-    // Leitura para Movimento (Analógico Esquerdo)
+    
+    // Leitura para Movimento (Controle)
     if (IsGamepadAvailable(gamepad)) {
         float axisX = GetGamepadAxisMovement(gamepad, GAMEPAD_AXIS_LEFT_X);
         float axisY = GetGamepadAxisMovement(gamepad, GAMEPAD_AXIS_LEFT_Y);
 
-        const float deadzone = 0.2f; // Zona morta para evitar deslize
+        const float deadzone = 0.2f; 
         
+        // Analógico Esquerdo
         if (fabs(axisX) > deadzone) move.x += axisX;
         if (fabs(axisY) > deadzone) move.y += axisY;
+
+        // Setinhas
+        if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) move.x += 1;
+        if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) move.x -= 1;
+        if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_UP)) move.y -= 1;
+        if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) move.y += 1;
     }
 
     float len = sqrtf(move.x * move.x + move.y * move.y);
     bool isMoving = (len > 0);
 
     if (isMoving) {
-        // Normaliza o vetor de movimento se vier de teclado + analógico
         move.x /= len;
         move.y /= len;
     }
@@ -163,7 +171,6 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
 
     // --- 3. LÓGICA DE ANIMAÇÃO E DIREÇÃO ---
     if(isMoving){
-        // Define lastDir (usada para escolher o sprite de caminhada)
         if(fabs(move.x) > fabs(move.y)){
             lastDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
         }else{
