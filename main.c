@@ -7,7 +7,7 @@
 #include <string.h> 
 
 #define MAX_INIMIGOS 6
-#define MAX_PROJETEIS 150
+#define MAX_PROJETEIS 50 
 #define MAX_HIGH_SCORES 5
 
 typedef enum {
@@ -19,13 +19,14 @@ typedef enum {
     TELA_GAME_OVER 
 } EstadoJogo;
 
+// --- ESTRUTURA E VARIÁVEIS DO PROJÉTIL  ---
 typedef struct {
     Vector2 pos;
     Vector2 velocity; 
     float speed;
     int dano;
     bool active;
-    Rectangle bounds;
+    Rectangle bounds; 
     float escala; 
 } Projetil;
 
@@ -137,7 +138,7 @@ void UpdateProjeteis(Rabisco *r, int mapW, int mapH, int borderTop, int borderBo
             projeteis[i].bounds.x = projeteis[i].pos.x + (visualW / 2.0f) - (projeteis[i].bounds.width / 2.0f);
             projeteis[i].bounds.y = projeteis[i].pos.y + (visualH / 2.0f) - (projeteis[i].bounds.height / 2.0f);
             
-            if (CheckCollisionRecs(projeteis[i].bounds, GetRabiscoHitbox(r))) { 
+            if (CheckCollisionRecs(projeteis[i].bounds, GetRabiscoAttackHitbox(r))) { 
                 r->currentHitPoints -= projeteis[i].dano;
                 projeteis[i].active = false;
             }
@@ -342,7 +343,25 @@ int main() {
             const char *texto = "Press any button to start";
             Vector2 textSize = MeasureTextEx(fontTitulo, texto, tamanhoFonteTitulo, 5); 
             DrawTextEx(fontTitulo, texto, (Vector2){ (screenW - textSize.x) / 3.1f, screenH - 100 }, tamanhoFonteTitulo, 9, (Color){150,150,150,255});
-            if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
+            
+            // --- DETECÇÃO DE INÍCIO COM CONTROLE ---
+            bool inputDetected = false;
+            
+            // 1. Teclado/Mouse
+            if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || 
+                IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
+                inputDetected = true;
+            }
+            
+            // 2. CONTROLE (Botão de ação principal ou universal)
+            if (IsGamepadAvailable(0)) {
+                if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) ||
+                    IsGamepadButtonPressed(0, GAMEPAD_BUTTON_UNKNOWN)) { 
+                    inputDetected = true;
+                }
+            }
+            
+            if (inputDetected) {
                 estado = TELA_TRANSICAO;
                 alphaTransicao = 0.0f;
                 PlayMusicStream(music);
@@ -578,15 +597,20 @@ int main() {
                 playerInitials[letterIndex] = (char)key;
                 letterIndex++;
             }
-            if (IsKeyPressed(KEY_BACKSPACE) && (letterIndex > 0)) {
+            
+            // --- DETECÇÃO DE BACKSPACE/DELETE COM CONTROLE ---
+            if ((IsKeyPressed(KEY_BACKSPACE) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) && (letterIndex > 0)) {
                 letterIndex--;
                 playerInitials[letterIndex] = '_';
             }
-            if (letterIndex == 3 && IsKeyPressed(KEY_ENTER)) {
+            
+            // --- DETECÇÃO DE ENTER/CONFIRMAR COM CONTROLE ---
+            if (letterIndex == 3 && (IsKeyPressed(KEY_ENTER) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))) {
                 AddNewScore(highScores, playerInitials, finalScore);
                 LoadHighScores(highScores);
                 estado = TELA_VER_SCORES;
             }
+            
             DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.7f));
             const char *tituloHS = "NEW HIGH SCORE!";
             Vector2 tamTituloHS = MeasureTextEx(fontTitulo, tituloHS, 60, 5);
@@ -606,7 +630,7 @@ int main() {
                 DrawTextEx(fontTitulo, "_", cursorPos, 50, 5, YELLOW);
             }
             if (letterIndex == 3) {
-                const char *enterText = "Pressione ENTER para salvar";
+                const char *enterText = "Pressione ENTER/X para salvar";
                 Vector2 tamEnter = MeasureTextEx(fontTitulo, enterText, 20, 5);
                 DrawTextEx(fontTitulo, enterText, (Vector2){(screenW - tamEnter.x) / 2, screenH/2 + 120}, 20, 5, WHITE);
             }
@@ -615,12 +639,15 @@ int main() {
         // --- VER SCORES ---
         else if (estado == TELA_VER_SCORES) {
             
+            // --- DETECÇÃO DE CONTINUAR COM CONTROLE ---
             if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ||
+                IsGamepadButtonPressed(0, GAMEPAD_BUTTON_UNKNOWN) || 
                 GetKeyPressed() != 0) {
                 
                 estado = TELA_GAME_OVER;
                 opcaoGameOver = 0; 
             }
+            
             DrawRectangle(0, 0, screenW, screenH, BLACK);
             Vector2 scorePos = (Vector2){ screenW / 2.0f - 150, screenH / 2.0f - 100 };
             DrawTextEx(fontTitulo, "HIGH SCORES", (Vector2){scorePos.x, scorePos.y - 40}, 30, 5, YELLOW);
@@ -639,13 +666,18 @@ int main() {
         
         // --- GAME OVER  ---
         else if (estado == TELA_GAME_OVER) {
-            if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+            
+            // --- NAVEGAÇÃO CIMA COM CONTROLE ---
+            if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
                 opcaoGameOver = 0;
             }
-            if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+            // --- NAVEGAÇÃO BAIXO COM CONTROLE ---
+            if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
                 opcaoGameOver = 1;
             }
-            if (IsKeyPressed(KEY_ENTER)) {
+            
+            // --- CONFIRMAÇÃO COM CONTROLE  ---
+            if (IsKeyPressed(KEY_ENTER) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
                 ResetJogo(&rabisco, inimigos, MAX_INIMIGOS, mapa);
                 spawnButton.isPressed = false; 
                 if (opcaoGameOver == 0) {
@@ -654,6 +686,7 @@ int main() {
                     estado = TELA_TITULO;
                 }
             }
+            
             DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.7f)); 
             const char *tituloGO = "GAME OVER";
             Vector2 tamTitulo = MeasureTextEx(fontTitulo, tituloGO, 80, 5);
