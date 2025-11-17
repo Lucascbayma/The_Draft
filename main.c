@@ -328,16 +328,16 @@ int main() {
         (float)texButtonUp.height * spawnButton.escala 
     };
 
-    Texture2D texPedestal = LoadTexture("images/pedestal.png"); 
+    Texture2D texPedestal = LoadTexture("images/pedestal_completo.png"); 
     Rectangle pedestalRects[4];
-    float pedestalScale = 0.1f; 
+    float pedestalScale = 0.15f; 
     float pedW = texPedestal.width * pedestalScale;
     float pedH = texPedestal.height * pedestalScale;
-    float pedestalY = mapBorderTop + 10.0f;
-    float ped1_X = 155.0f;
-    float ped2_X = 280.0f;
-    float ped3_X = 635.0f;
-    float ped4_X = 777.5f; 
+    float pedestalY = mapBorderTop - 10.0f;
+    float ped1_X = 130.0f;
+    float ped2_X = 250.0f;
+    float ped3_X = 615.0f;
+    float ped4_X = 750.5f; 
     pedestalRects[0] = (Rectangle){ ped1_X, pedestalY, pedW, pedH };
     pedestalRects[1] = (Rectangle){ ped2_X, pedestalY, pedW, pedH };
     pedestalRects[2] = (Rectangle){ ped3_X, pedestalY, pedW, pedH };

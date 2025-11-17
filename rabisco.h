@@ -22,6 +22,10 @@ typedef struct {
     float velAtaque;
     float width;
     float height;
+    float hitboxWidth;
+    float hitboxHeight;
+    float hitboxOffsetX;
+    float hitboxOffsetY;
     PlayerDirection facingDir;
     float attackTimer;
     float attackDuration;

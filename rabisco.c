@@ -40,6 +40,10 @@ void InitRabisco(Rabisco *r, float x, float y) {
     float heightFactor = 0.8f;
     r->width = idle.width * r->escala;
     r->height = (idle.height * r->escala) * heightFactor;
+    r->hitboxWidth = 25.0f;
+    r->hitboxHeight = 35.0f;
+    r->hitboxOffsetX = (r->width - r->hitboxWidth) / 2.0f;
+    r->hitboxOffsetY = (r->height - r->hitboxHeight) / 2.0f;
     r->facingDir = DIR_DOWN;
     r->attackTimer = 0.0f;
     r->attackDuration = 0.25f;
@@ -315,7 +319,12 @@ void UnloadRabisco(Rabisco *r){
     UnloadFont(r->hudFont);
 }
 Rectangle GetRabiscoHitbox(Rabisco *r) {
-    return (Rectangle){ r->pos.x, r->pos.y, r->width, r->height };
+    return (Rectangle){ 
+        r->pos.x + r->hitboxOffsetX, 
+        r->pos.y + r->hitboxOffsetY, 
+        r->hitboxWidth, 
+        r->hitboxHeight 
+    };
 }
 
 Rectangle GetRabiscoAttackHitbox(Rabisco *r) {
