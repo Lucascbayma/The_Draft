@@ -142,7 +142,7 @@ void UpdateProjeteis(Rabisco *r, int mapW, int mapH, int borderTop, int borderBo
             projeteis[i].bounds.x = projeteis[i].pos.x + (visualW / 2.0f) - (projeteis[i].bounds.width / 2.0f);
             projeteis[i].bounds.y = projeteis[i].pos.y + (visualH / 2.0f) - (projeteis[i].bounds.height / 2.0f);
             
-            if (CheckCollisionRecs(projeteis[i].bounds, GetRabiscoAttackHitbox(r))) { 
+            if (CheckCollisionRecs(projeteis[i].bounds, GetRabiscoHitbox(r))) { 
                 r->currentHitPoints -= projeteis[i].dano;
                 projeteis[i].active = false;
             }
@@ -283,7 +283,7 @@ int main() {
     Texture2D fundoPreto = LoadTexture("images/fundo_preto.png");
     const int tamanhoFonteTitulo = 30; 
     Font fontTitulo = LoadFontEx("assets/PatrickHandSC-Regular.ttf", tamanhoFonteTitulo, NULL, 0); 
-    Music music = LoadMusicStream("audio/music/the_draft_music.ogg");
+    Music music = LoadMusicStream("audio/music/the_draft_music.mp3");
     music.looping = true;
     float musicVolume = 0.5f; 
     SetMusicVolume(music, musicVolume);
