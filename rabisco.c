@@ -40,8 +40,8 @@ void InitRabisco(Rabisco *r, float x, float y) {
     float heightFactor = 0.8f;
     r->width = idle.width * r->escala;
     r->height = (idle.height * r->escala) * heightFactor;
-    r->hitboxWidth = 25.0f;
-    r->hitboxHeight = 35.0f;
+    r->hitboxWidth = 50.0f;
+    r->hitboxHeight = 65.0f;
     r->hitboxOffsetX = (r->width - r->hitboxWidth) / 2.0f;
     r->hitboxOffsetY = (r->height - r->hitboxHeight) / 2.0f;
     r->facingDir = DIR_DOWN;

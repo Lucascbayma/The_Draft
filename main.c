@@ -338,10 +338,14 @@ int main() {
     float ped2_X = 250.0f;
     float ped3_X = 615.0f;
     float ped4_X = 750.5f; 
-    pedestalRects[0] = (Rectangle){ ped1_X, pedestalY, pedW, pedH };
-    pedestalRects[1] = (Rectangle){ ped2_X, pedestalY, pedW, pedH };
-    pedestalRects[2] = (Rectangle){ ped3_X, pedestalY, pedW, pedH };
-    pedestalRects[3] = (Rectangle){ ped4_X, pedestalY, pedW, pedH };
+    float hitboxOffsetX = 45.0f;  
+    float hitboxOffsetY = 0.0f; 
+    float hitboxW = pedW - 85.0f; 
+    float hitboxH = pedH - 60.0f;
+    pedestalRects[0] = (Rectangle){ ped1_X + hitboxOffsetX, pedestalY + hitboxOffsetY, hitboxW, hitboxH };
+    pedestalRects[1] = (Rectangle){ ped2_X + hitboxOffsetX, pedestalY + hitboxOffsetY, hitboxW, hitboxH };
+    pedestalRects[2] = (Rectangle){ ped3_X + hitboxOffsetX, pedestalY + hitboxOffsetY, hitboxW, hitboxH };
+    pedestalRects[3] = (Rectangle){ ped4_X + hitboxOffsetX, pedestalY + hitboxOffsetY, hitboxW, hitboxH };
 
     ResetJogo(&rabisco, inimigos, MAX_INIMIGOS, mapa);
     spawnButton.isPressed = false; 
@@ -519,16 +523,10 @@ int main() {
                 
                 if (subOnda == 0) {
                     DrawTextureEx(texButtonUp, (Vector2){spawnButton.bounds.x, spawnButton.bounds.y}, 0.0f, spawnButton.escala, WHITE);
-                    
-                    for (int i = 0; i < 4; i++) {
-                        DrawTextureEx(
-                            texPedestal, 
-                            (Vector2){pedestalRects[i].x, pedestalRects[i].y}, 
-                            0.0f, 
-                            pedestalScale, 
-                            WHITE
-                        );
-                    }
+                    DrawTextureEx(texPedestal, (Vector2){ ped1_X, pedestalY }, 0.0f, pedestalScale, WHITE);
+                    DrawTextureEx(texPedestal, (Vector2){ ped2_X, pedestalY }, 0.0f, pedestalScale, WHITE);
+                    DrawTextureEx(texPedestal, (Vector2){ ped3_X, pedestalY }, 0.0f, pedestalScale, WHITE);
+                    DrawTextureEx(texPedestal, (Vector2){ ped4_X, pedestalY }, 0.0f, pedestalScale, WHITE);
                 } else {
                     DrawTextureEx(texButtonDown, (Vector2){spawnButton.bounds.x, spawnButton.bounds.y}, 0.0f, spawnButton.escala, WHITE);
                 }
