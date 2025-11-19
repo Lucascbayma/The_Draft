@@ -1,14 +1,16 @@
 #include "raylib.h"
 #include "rabisco.h"
 #include "inimigos.h"
+#include "itens.h"
 #include "stdio.h"
 #include "raymath.h"
 #include <stdlib.h> 
 #include <string.h> 
 
 #define MAX_INIMIGOS 6
-#define MAX_PROJETEIS 50 
+#define MAX_PROJETEIS 150
 #define MAX_HIGH_SCORES 5
+#define NUM_PEDESTAIS 4 
 
 typedef enum {
     TELA_TITULO,
@@ -19,14 +21,13 @@ typedef enum {
     TELA_GAME_OVER 
 } EstadoJogo;
 
-// --- ESTRUTURA E VARIÁVEIS DO PROJÉTIL ---
 typedef struct {
     Vector2 pos;
     Vector2 velocity; 
     float speed;
     int dano;
     bool active;
-    Rectangle bounds; 
+    Rectangle bounds;
     float escala; 
 } Projetil;
 
@@ -42,6 +43,18 @@ typedef struct {
 } ScoreEntry;
 
 
+typedef struct {
+    Vector2 pos;
+    Rectangle hitRect;      
+    Rectangle triggerRect;  
+    bool active;            
+    ItemType tipo;
+    int preco;
+    float floatTimer;  
+    bool waitingForRestock; 
+    float restockTimer;     
+} Pedestal;
+
 // --- VARIÁVEIS GLOBAIS ---
 Projetil projeteis[MAX_PROJETEIS];
 Texture2D texProjetilBorracha; 
@@ -52,12 +65,231 @@ ScoreEntry highScores[MAX_HIGH_SCORES];
 int finalScore = 0; 
 int currentScore = 0;
 
-// Variável para rastrear a letra ASCII selecionada (A-Z) 
-int selectedChar = 'A'; 
-static bool gamepadAxisReleased = true; // Para controlar a repetição do analógico
+Pedestal pedestais[NUM_PEDESTAIS];
+Texture2D texPedestalBase; 
 
 
-// --- FUNÇÕES DE HIGH SCORE ---
+// --- FUNÇÕES AUXILIARES ---
+
+void ResolveStaticCollision(Rabisco *r, Rectangle obstacleBounds) { 
+    Rectangle rabiscoHitbox = GetRabiscoHitbox(r);
+
+    if(CheckCollisionRecs(rabiscoHitbox, obstacleBounds)){
+        float overlapX = (rabiscoHitbox.width / 2.0f + obstacleBounds.width / 2.0f) - fabs((rabiscoHitbox.x + rabiscoHitbox.width/2.0f) - (obstacleBounds.x + obstacleBounds.width/2.0f));
+        float overlapY = (rabiscoHitbox.height / 2.0f + obstacleBounds.height / 2.0f) - fabs((rabiscoHitbox.y + rabiscoHitbox.height/2.0f) - (obstacleBounds.y + obstacleBounds.height/2.0f));
+        
+        float tinyPush = 0.01f;
+
+        if(overlapX < overlapY){
+            if(rabiscoHitbox.x < obstacleBounds.x){
+                r->pos.x -= overlapX + tinyPush; 
+            }else{ 
+                r->pos.x += overlapX + tinyPush; 
+            }
+        } 
+        else{
+            if(rabiscoHitbox.y < obstacleBounds.y){ 
+                r->pos.y -= overlapY + tinyPush; 
+            }else{ 
+                r->pos.y += overlapY + tinyPush; 
+            }
+        }
+    }
+}
+
+// Sorteios
+ItemType GetRandomVidaConsumivelItem(void) {
+    int r = GetRandomValue(0, 2);
+    if (r == 0) return ITEM_CORACAO_PARTIDO;
+    if (r == 1) return ITEM_CORACAO;
+    return ITEM_CORACAO_DUPLO;
+}
+ItemType GetRandomUpgradeItem(void) {
+    int r = GetRandomValue(0, 7);
+    switch(r) {
+        case 0: return ITEM_LAPIS_PARTIDO;
+        case 1: return ITEM_APONTADOR;
+        case 2: return ITEM_ESTILETE;
+        case 3: return ITEM_COLA;
+        case 4: return ITEM_BOTAS_DE_PAPEL;
+        case 5: return ITEM_PENGOO;
+        case 6: return ITEM_CORACAO_VAZIO;
+        case 7: return ITEM_GRAMPEADOR;
+        default: return ITEM_APONTADOR;
+    }
+}
+void ShuffleTipos(ItemType array[], int n) {
+    for (int i = n - 1; i > 0; i--) {
+        int j = GetRandomValue(0, i);
+        ItemType temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+}
+
+void SetupPedestais(int mapW, int mapBorderTop) {
+    float scale = 0.15f; 
+    float pW = texPedestalBase.width * scale;
+    float pH = texPedestalBase.height * scale;
+    
+    if (pW == 0) pW = 50;
+    if (pH == 0) pH = 70;
+    
+    float pedestalY = 50.0f; 
+    
+    float pedX[4] = {130.0f, 250.0f, 615.0f, 750.5f};
+
+    for (int i = 0; i < NUM_PEDESTAIS; i++) {
+        pedestais[i].pos = (Vector2){ pedX[i], pedestalY };
+        pedestais[i].active = false; 
+        pedestais[i].tipo = ITEM_NULO;
+        pedestais[i].preco = 0;
+        pedestais[i].floatTimer = GetRandomValue(0, 100) / 10.0f;
+        pedestais[i].waitingForRestock = false;
+        pedestais[i].restockTimer = 0.0f;
+
+        pedestais[i].hitRect = (Rectangle){ 
+            pedestais[i].pos.x + 10, 
+            pedestais[i].pos.y + 20, 
+            pW - 20, 
+            pH - 20 
+        };
+        
+        pedestais[i].triggerRect = (Rectangle){
+            pedestais[i].hitRect.x - 10,
+            pedestais[i].hitRect.y - 10,
+            pedestais[i].hitRect.width + 20,
+            pedestais[i].hitRect.height + 20
+        };
+    }
+}
+
+void RestockPedestais(void) {
+    for(int i=0; i<NUM_PEDESTAIS; i++) {
+        pedestais[i].waitingForRestock = false;
+        pedestais[i].restockTimer = 0.0f;
+    }
+
+    pedestais[0].active = true; 
+    pedestais[0].tipo = GetRandomVidaConsumivelItem();
+    pedestais[0].preco = GetItemPrice(pedestais[0].tipo);
+
+    ItemType up1 = GetRandomUpgradeItem();
+    ItemType up2 = GetRandomUpgradeItem();
+    pedestais[1].active = true; pedestais[1].tipo = up1; pedestais[1].preco = GetItemPrice(up1);
+    pedestais[2].active = true; pedestais[2].tipo = up2; pedestais[2].preco = GetItemPrice(up2);
+
+    pedestais[3].active = false; 
+    pedestais[3].tipo = ITEM_NULO;
+    pedestais[3].preco = 0;
+}
+
+
+// --- UPDATE PEDESTAIS ---
+void UpdatePedestais(Rabisco *r) {
+    for (int i = 0; i < NUM_PEDESTAIS; i++) {
+        ResolveStaticCollision(r, pedestais[i].hitRect);
+
+        // 1. Lógica de Reabastecimento 
+        if (pedestais[i].waitingForRestock) {
+            pedestais[i].restockTimer -= GetFrameTime();
+            if (pedestais[i].restockTimer <= 0) {
+                pedestais[i].waitingForRestock = false;
+                
+                if (i == 0) { 
+                    pedestais[i].tipo = GetRandomVidaConsumivelItem();
+                    pedestais[i].preco = GetItemPrice(pedestais[i].tipo);
+                    pedestais[i].active = true; 
+                } 
+                else if (i == 1 || i == 2) { 
+                    pedestais[i].tipo = GetRandomUpgradeItem();
+                    pedestais[i].preco = GetItemPrice(pedestais[i].tipo);
+                    pedestais[i].active = true;
+                }
+                // Pedestal 4 continua vazio
+            }
+            continue; 
+        }
+
+        if (!pedestais[i].active) continue; 
+        
+        pedestais[i].floatTimer += GetFrameTime();
+        
+        // 2. Lógica de Compra
+        if (CheckCollisionRecs(GetRabiscoHitbox(r), pedestais[i].triggerRect)) {
+            
+            if (r->moedas >= pedestais[i].preco) {
+                 
+                 bool comprou = false;
+                 
+                 if (pedestais[i].tipo == ITEM_CORACAO_PARTIDO || pedestais[i].tipo == ITEM_CORACAO || pedestais[i].tipo == ITEM_CORACAO_DUPLO) {
+                     if (r->currentHitPoints < r->maxHeartContainers * 2) {
+                        if (pedestais[i].tipo == ITEM_CORACAO_PARTIDO) r->currentHitPoints += 1;
+                        else if (pedestais[i].tipo == ITEM_CORACAO) r->currentHitPoints += 2;
+                        else r->currentHitPoints += 4;
+                        
+                        if (r->currentHitPoints > r->maxHeartContainers * 2) r->currentHitPoints = r->maxHeartContainers * 2;
+                        comprou = true;
+                     }
+                 } else {
+                     AddItemAoInventario(r, pedestais[i].tipo);
+                     AplicarStatsInventario(r);
+                     if (pedestais[i].tipo == ITEM_GRAMPEADOR || pedestais[i].tipo == ITEM_CORACAO_VAZIO) {
+                         if(pedestais[i].tipo == ITEM_GRAMPEADOR) r->currentHitPoints += 2;
+                     }
+                     comprou = true;
+                 }
+
+                 if (comprou) {
+                     r->moedas -= pedestais[i].preco;
+                     pedestais[i].active = false; 
+                     pedestais[i].tipo = ITEM_NULO;
+                     
+                     // --- INICIA O DELAY DE RESTOCK ---
+                     pedestais[i].waitingForRestock = true;
+                     pedestais[i].restockTimer = 2.0f; 
+                 }
+            }
+        }
+    }
+}
+
+void DrawPedestais(Font font) {
+    float scale = 0.15f;
+    for (int i = 0; i < NUM_PEDESTAIS; i++) {
+        
+        // 1. Desenha a BASE 
+        DrawTextureEx(texPedestalBase, pedestais[i].pos, 0.0f, scale, WHITE);
+        
+        // 2. Desenha o Item e Preço
+        if (pedestais[i].active && pedestais[i].tipo != ITEM_NULO) {
+            float floatY = sinf(pedestais[i].floatTimer * 2.0f) * 3.0f; 
+            
+            Texture2D itemTex = GetItemIconTexture(pedestais[i].tipo);
+            
+            if (itemTex.id > 0) {
+                float itemScale = 0.1f; 
+                Vector2 itemPos = { 
+                    pedestais[i].pos.x + (texPedestalBase.width * scale / 2) - (itemTex.width * itemScale / 2), 
+                    pedestais[i].pos.y + floatY + 20.0f 
+                };
+                
+                DrawTextureEx(itemTex, itemPos, 0.0f, itemScale, WHITE);
+            }
+            
+            const char* precoTexto = TextFormat("$%d", pedestais[i].preco);
+            Vector2 txtSize = MeasureTextEx(font, precoTexto, 20, 2);
+            Vector2 txtPos = { 
+                pedestais[i].pos.x + (texPedestalBase.width * scale / 2) - (txtSize.x / 2), 
+                pedestais[i].pos.y + (texPedestalBase.height * scale) - 35.0f
+            };
+            
+            DrawTextEx(font, precoTexto, (Vector2){txtPos.x + 1, txtPos.y + 1}, 20, 2, BLACK); 
+            DrawTextEx(font, precoTexto, txtPos, 20, 2, YELLOW);
+        }
+    }
+}
+
 int CompareScores(const void *a, const void *b) {
     ScoreEntry *scoreA = (ScoreEntry *)a;
     ScoreEntry *scoreB = (ScoreEntry *)b;
@@ -65,10 +297,7 @@ int CompareScores(const void *a, const void *b) {
 }
 void SaveHighScores(ScoreEntry scores[]) {
     FILE *file = fopen("scores.txt", "w");
-    if (file == NULL) {
-        printf("ERRO: Nao foi possivel abrir scores.txt para escrita.\n");
-        return;
-    }
+    if (file == NULL) return;
     for (int i = 0; i < MAX_HIGH_SCORES; i++) {
         fprintf(file, "%s %d\n", scores[i].initials, scores[i].score);
     }
@@ -77,7 +306,6 @@ void SaveHighScores(ScoreEntry scores[]) {
 void LoadHighScores(ScoreEntry scores[]) {
     FILE *file = fopen("scores.txt", "r");
     if (file == NULL) {
-        printf("Arquivo scores.txt nao encontrado. Criando um novo.\n");
         strcpy(scores[0].initials, "AAA"); scores[0].score = 50;
         strcpy(scores[1].initials, "BBB"); scores[1].score = 40;
         strcpy(scores[2].initials, "CCC"); scores[2].score = 30;
@@ -99,20 +327,15 @@ bool IsHighScore(ScoreEntry scores[], int newScore) {
 }
 void AddNewScore(ScoreEntry scores[], char newInitials[], int newScore) {
     ScoreEntry tempScores[MAX_HIGH_SCORES + 1];
-    for(int i=0; i < MAX_HIGH_SCORES; i++) {
-        tempScores[i] = scores[i];
-    }
+    for(int i=0; i < MAX_HIGH_SCORES; i++) tempScores[i] = scores[i];
     strcpy(tempScores[MAX_HIGH_SCORES].initials, newInitials);
     tempScores[MAX_HIGH_SCORES].score = newScore;
     qsort(tempScores, MAX_HIGH_SCORES + 1, sizeof(ScoreEntry), CompareScores);
-    for(int i=0; i < MAX_HIGH_SCORES; i++) {
-        scores[i] = tempScores[i];
-    }
+    for(int i=0; i < MAX_HIGH_SCORES; i++) scores[i] = tempScores[i];
     SaveHighScores(scores);
 }
 
 
-// --- FUNÇÕES DE PROJÉTIL ---
 void SpawnProjetilAtirador(Vector2 startPos, Vector2 direction) {
     for (int i = 0; i < MAX_PROJETEIS; i++) {
         if (!projeteis[i].active) {
@@ -161,35 +384,7 @@ void DrawProjeteis() {
     }
 }
 
-// --- FUNÇÃO DE COLISÃO ---
-void ResolveStaticCollision(Rabisco *r, Rectangle obstacleBounds) { 
-    Rectangle rabiscoHitbox = GetRabiscoHitbox(r);
 
-    if(CheckCollisionRecs(rabiscoHitbox, obstacleBounds)){
-        float overlapX = (rabiscoHitbox.width / 2.0f + obstacleBounds.width / 2.0f) - fabs((rabiscoHitbox.x + rabiscoHitbox.width/2.0f) - (obstacleBounds.x + obstacleBounds.width/2.0f));
-        float overlapY = (rabiscoHitbox.height / 2.0f + obstacleBounds.height / 2.0f) - fabs((rabiscoHitbox.y + rabiscoHitbox.height/2.0f) - (obstacleBounds.y + obstacleBounds.height/2.0f));
-        
-        float tinyPush = 0.01f;
-
-        if(overlapX < overlapY){
-            if(rabiscoHitbox.x < obstacleBounds.x){
-                r->pos.x -= overlapX + tinyPush; 
-            }else{ 
-                r->pos.x += overlapX + tinyPush; 
-            }
-        } 
-        else{
-            if(rabiscoHitbox.y < obstacleBounds.y){ 
-                r->pos.y -= overlapY + tinyPush; 
-            }else{ 
-                r->pos.y += overlapY + tinyPush; 
-            }
-        }
-    }
-}
-
-
-// --- FUNÇÕES DE ONDA ---
 Vector2 GetRandomSpawnPosition(Rabisco *r, int mapW, int mapH, int bTop, int bBot, int bLeft, int bRight) {
     Vector2 pos;
     float safeRadius = 250.0f; 
@@ -238,11 +433,13 @@ void SpawnWave(int onda, Inimigo inimigos[], Rabisco *r, int mapW, int mapH, int
 }
 
 
-// --- RESET JOGO ---
 void ResetJogo(Rabisco *rabisco, Inimigo inimigos[], int maxInimigos, Texture2D mapa) {
+    LimparInventario(rabisco);
+    AplicarStatsInventario(rabisco);
+
     rabisco->pos = (Vector2){ mapa.width / 2.0f, mapa.height / 2.0f + 100.0f };
     rabisco->currentHitPoints = rabisco->maxHeartContainers * 2; 
-    rabisco->moedas = 0;
+    rabisco->moedas = 0; 
     rabisco->facingDir = DIR_DOWN;
     rabisco->attackTimer = 0.0f;
     rabisco->attackDurationTimer = 0.0f;
@@ -254,14 +451,13 @@ void ResetJogo(Rabisco *rabisco, Inimigo inimigos[], int maxInimigos, Texture2D 
         projeteis[i].active = false;
     }
     
+    SetupPedestais(mapa.width, 65); 
+    RestockPedestais(); 
+    
     ondaAtual = 0;
     subOnda = 0;
     chanceBonusOnda = 0.35f;
-    currentScore = 0;
-    
-    // Reseta a letra selecionada
-    selectedChar = 'A'; 
-    gamepadAxisReleased = true;
+    currentScore = 0; 
 }
 
 
@@ -283,7 +479,7 @@ int main() {
     Texture2D fundoPreto = LoadTexture("images/fundo_preto.png");
     const int tamanhoFonteTitulo = 30; 
     Font fontTitulo = LoadFontEx("assets/PatrickHandSC-Regular.ttf", tamanhoFonteTitulo, NULL, 0); 
-    Music music = LoadMusicStream("audio/music/the_draft_music.mp3");
+    Music music = LoadMusicStream("audio/music/the_draft_music.ogg");
     music.looping = true;
     float musicVolume = 0.5f; 
     SetMusicVolume(music, musicVolume);
@@ -311,6 +507,8 @@ int main() {
     InitRabisco(&rabisco, mapa.width / 2.0f, mapa.height / 2.0f);
 
     InitInimigoAssets(); 
+    InitItensAssets();
+    
     Inimigo inimigos[MAX_INIMIGOS]; 
     
     texProjetilBorracha = LoadTexture("images/inimigo_borracha_tiro.png");
@@ -318,35 +516,20 @@ int main() {
     Texture2D texButtonUp = LoadTexture("images/button1.png");
     Texture2D texButtonDown = LoadTexture("images/button2.png");
     
+    // Carrega apenas a base "pedestal.png"
+    texPedestalBase = LoadTexture("images/pedestal.png"); 
+    
     Button spawnButton;
     spawnButton.escala = 0.6f; 
     spawnButton.isPressed = false;
     spawnButton.bounds = (Rectangle){ 
         mapa.width / 2.0f - (texButtonUp.width * spawnButton.escala / 2.0f),
-        mapa.height / 3.0f-100.0f,
+        mapa.height / 3.0f-170.0f,
         (float)texButtonUp.width * spawnButton.escala, 
         (float)texButtonUp.height * spawnButton.escala 
     };
 
-    Texture2D texPedestal = LoadTexture("images/pedestal_completo.png"); 
-    Rectangle pedestalRects[4];
-    float pedestalScale = 0.15f; 
-    float pedW = texPedestal.width * pedestalScale;
-    float pedH = texPedestal.height * pedestalScale;
-    float pedestalY = mapBorderTop - 10.0f;
-    float ped1_X = 130.0f;
-    float ped2_X = 250.0f;
-    float ped3_X = 615.0f;
-    float ped4_X = 750.5f; 
-    float hitboxOffsetX = 45.0f;  
-    float hitboxOffsetY = 0.0f; 
-    float hitboxW = pedW - 85.0f; 
-    float hitboxH = pedH - 60.0f;
-    pedestalRects[0] = (Rectangle){ ped1_X + hitboxOffsetX, pedestalY + hitboxOffsetY, hitboxW, hitboxH };
-    pedestalRects[1] = (Rectangle){ ped2_X + hitboxOffsetX, pedestalY + hitboxOffsetY, hitboxW, hitboxH };
-    pedestalRects[2] = (Rectangle){ ped3_X + hitboxOffsetX, pedestalY + hitboxOffsetY, hitboxW, hitboxH };
-    pedestalRects[3] = (Rectangle){ ped4_X + hitboxOffsetX, pedestalY + hitboxOffsetY, hitboxW, hitboxH };
-
+    // Inicializa pedestais
     ResetJogo(&rabisco, inimigos, MAX_INIMIGOS, mapa);
     spawnButton.isPressed = false; 
 
@@ -360,11 +543,11 @@ int main() {
 
     while (!WindowShouldClose()) {
         UpdateMusicStream(music);
-
         BeginDrawing();
         ClearBackground(BLACK);
 
         if (estado == TELA_TITULO) {
+            // ... TELA TITULO ...
             tempoFrame += GetFrameTime();
             if (tempoFrame >= duracaoFrame) {
                 tempoFrame = 0.0f;
@@ -380,23 +563,7 @@ int main() {
             const char *texto = "Press any button to start";
             Vector2 textSize = MeasureTextEx(fontTitulo, texto, tamanhoFonteTitulo, 5); 
             DrawTextEx(fontTitulo, texto, (Vector2){ (screenW - textSize.x) / 3.1f, screenH - 100 }, tamanhoFonteTitulo, 9, (Color){150,150,150,255});
-            
-            // --- DETECÇÃO DE INÍCIO COM CONTROLE ---
-            bool inputDetected = false;
-            
-            if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || 
-                IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
-                inputDetected = true;
-            }
-            
-            if (IsGamepadAvailable(0)) {
-                if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) || 
-                    IsGamepadButtonPressed(0, GAMEPAD_BUTTON_UNKNOWN)) { 
-                    inputDetected = true;
-                }
-            }
-            
-            if (inputDetected) {
+            if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
                 estado = TELA_TRANSICAO;
                 alphaTransicao = 0.0f;
                 PlayMusicStream(music);
@@ -404,6 +571,7 @@ int main() {
         }
 
         else if (estado == TELA_TRANSICAO) {
+            // ... TELA TRANSIÇÃO ...
             Texture2D frame = tituloFrames[frameAtual];
             float scaleX = (float)screenW / frame.width;
             float scaleY = (float)screenH / frame.height;
@@ -430,27 +598,32 @@ int main() {
                 if (musicVolume > 1.0f) musicVolume = 1.0f;
                 SetMusicVolume(music, musicVolume);
             }
-            bool rabiscoAtacou = UpdateRabisco(&rabisco, mapa.width, mapa.height,mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight); 
-            UpdateProjeteis(&rabisco, mapa.width, mapa.height, mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
             
-            // COLISÃO COM PEDESTAIS 
-            // A colisão é ativa SOMENTE quando a onda NÃO está ativa
-            if(subOnda == 0){
-                for(int i = 0; i < 4; i++){
-                    // Usa 0.001f para garantir que o Rabisco seja empurrado para a borda exata
-                    ResolveStaticCollision(&rabisco, pedestalRects[i]); 
-                }
+            Rectangle pedestalHitboxes[4];
+            for(int i=0; i < NUM_PEDESTAIS; i++) pedestalHitboxes[i] = pedestais[i].hitRect;
+            
+            bool rabiscoAtacou = UpdateRabisco(&rabisco, mapa.width, mapa.height,
+                                               mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight, 
+                                               pedestalHitboxes);
+            
+            UpdateProjeteis(&rabisco, mapa.width, mapa.height, mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
+
+            if (subOnda == 0) {
+                UpdatePedestais(&rabisco);
             }
 
             int activeEnemies = 0;
             for (int i = 0; i < MAX_INIMIGOS; i++) {
                 if (inimigos[i].active) {
-                    currentScore += UpdateInimigo(&inimigos[i], &rabisco, mapa.width, mapa.height, mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
+                    currentScore += UpdateInimigo(&inimigos[i], &rabisco, mapa.width, mapa.height,
+                                                  mapBorderTop, mapBorderBottom, 
+                                                  mapBorderLeft, mapBorderRight);
                     if (inimigos[i].active) {
                         activeEnemies++;
                     }
                 }
             }
+            
             float playerHitboxSize = 10.0f;
             Rectangle rabiscoBoundsForButton = {
                 rabisco.pos.x + (rabisco.width / 2.0f) - (playerHitboxSize / 2.0f),
@@ -466,34 +639,48 @@ int main() {
                 buttonHitboxW,
                 buttonHitboxH
             };
+            
             if (activeEnemies == 0 && subOnda > 0) {
                 if (ondaAtual < 3) {
                     spawnButton.isPressed = false;
                     subOnda = 0;
+                    RestockPedestais(); 
                 } else {
                     float roll = (float)GetRandomValue(0, 99) / 100.0f;
                     float chanceSucesso = (subOnda == 1) ? chanceBonusOnda : (chanceBonusOnda / 2.0f);
+                    
                     if (roll < chanceSucesso && subOnda < 3) {
                         subOnda++;
                         SpawnWave(ondaAtual, inimigos, &rabisco, mapa.width, mapa.height, mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
                     } else {
                         spawnButton.isPressed = false;
                         subOnda = 0;
+                        RestockPedestais(); 
                     }
                 }
             }
+
             if (subOnda == 0 && !spawnButton.isPressed && CheckCollisionRecs(rabiscoBoundsForButton, buttonHitbox)) {
                 spawnButton.isPressed = true;
                 ondaAtual++;
                 subOnda = 1; 
+                
+                // Limpa (esconde) pedestais durante a onda
+                for (int i = 0; i < NUM_PEDESTAIS; i++) {
+                    pedestais[i].active = false;
+                    pedestais[i].tipo = ITEM_NULO;
+                }
+                
                 if (ondaAtual == 3) {
                     chanceBonusOnda = 0.35f;
                 } else if (ondaAtual > 3) {
                     chanceBonusOnda += 0.15f;
                     if (chanceBonusOnda > 0.95f) chanceBonusOnda = 0.95f; 
                 }
+                
                 SpawnWave(ondaAtual, inimigos, &rabisco, mapa.width, mapa.height, mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
             }
+
             if (rabiscoAtacou) {
                 Rectangle attackBox = GetRabiscoAttackHitbox(&rabisco);
                 for (int i = 0; i < MAX_INIMIGOS; i++) {
@@ -507,6 +694,7 @@ int main() {
             for (int i = 0; i < MAX_INIMIGOS; i++) {
                 if (inimigos[i].tint.r == RED.r) inimigos[i].tint = WHITE;
             }
+
             Vector2 desiredTarget = rabisco.pos;
             camera.target.x += (desiredTarget.x - camera.target.x) * 0.15f;
             camera.target.y += (desiredTarget.y - camera.target.y) * 0.15f;
@@ -523,10 +711,8 @@ int main() {
                 
                 if (subOnda == 0) {
                     DrawTextureEx(texButtonUp, (Vector2){spawnButton.bounds.x, spawnButton.bounds.y}, 0.0f, spawnButton.escala, WHITE);
-                    DrawTextureEx(texPedestal, (Vector2){ ped1_X, pedestalY }, 0.0f, pedestalScale, WHITE);
-                    DrawTextureEx(texPedestal, (Vector2){ ped2_X, pedestalY }, 0.0f, pedestalScale, WHITE);
-                    DrawTextureEx(texPedestal, (Vector2){ ped3_X, pedestalY }, 0.0f, pedestalScale, WHITE);
-                    DrawTextureEx(texPedestal, (Vector2){ ped4_X, pedestalY }, 0.0f, pedestalScale, WHITE);
+                    DrawPedestais(fontTitulo);
+
                 } else {
                     DrawTextureEx(texButtonDown, (Vector2){spawnButton.bounds.x, spawnButton.bounds.y}, 0.0f, spawnButton.escala, WHITE);
                 }
@@ -537,7 +723,7 @@ int main() {
                 DrawRabisco(&rabisco);
             EndMode2D();
             
-            // --- HUD  ---
+            // --- HUD ---
             int padding = 20;
             int heartSize = 70;
             for (int i = 0; i < rabisco.maxHeartContainers; i++) {
@@ -600,14 +786,11 @@ int main() {
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x, rangeValuePos.y - 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x, rangeValuePos.y + 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, rangeValue, rangeValuePos, statusFontSize, spacing, WHITE);
-            // --- FIM HUD ---
-
-            // --- HUD de SCORE ATUAL ---
+            
             const char* scoreText = TextFormat("SCORE: %06d", currentScore);
             Vector2 scoreTextSize = MeasureTextEx(fontTitulo, scoreText, 40, 5);
             DrawTextEx(fontTitulo, scoreText, (Vector2){screenW - scoreTextSize.x - 20, 20}, 40, 5, WHITE);
 
-            // --- MORTE ---
             if (rabisco.currentHitPoints <= 0) {
                 finalScore = currentScore; 
                 if (IsHighScore(highScores, finalScore)) {
@@ -624,72 +807,26 @@ int main() {
             }
         }
         
-        // --- INSERIR SCORE ---
         else if (estado == TELA_INSERIR_SCORE) {
             blinkTimer += GetFrameTime();
             if (blinkTimer >= 0.5f) {
                 blinkTimer = 0.0f;
                 showCursor = !showCursor;
             }
-            
-            // --- LÓGICA DE NAVEGAÇÃO ANALÓGICA ---
-            int gamepad = 0;
-            float axisY = IsGamepadAvailable(gamepad) ? GetGamepadAxisMovement(gamepad, GAMEPAD_AXIS_LEFT_Y) : 0.0f;
-            const float deadzone = 0.5f;
-
-            if (fabs(axisY) < deadzone) {
-                gamepadAxisReleased = true; // Permite a próxima mudança
-            } else if (gamepadAxisReleased) {
-                if (axisY < -deadzone) { // Analógico para CIMA
-                    selectedChar++;
-                    gamepadAxisReleased = false;
-                } else if (axisY > deadzone) { // Analógico para BAIXO
-                    selectedChar--;
-                    gamepadAxisReleased = false;
-                }
-            }
-
-            // Limites do Alfabeto (A-Z)
-            if (selectedChar > 'Z') selectedChar = 'A';
-            if (selectedChar < 'A') selectedChar = 'Z';
-            
-            // --- ENTRADA DE TECLADO E BACKSPACE ---
             int key = GetKeyPressed();
-            
-            // Leitura de Letras (Teclado)
             if ((key >= KEY_A && key <= KEY_Z) && (letterIndex < 3)) {
                 playerInitials[letterIndex] = (char)key;
                 letterIndex++;
             }
-            
-            // BACKSPACE/DELETE (Teclado ou Quadrado/Square)
-            if ((IsKeyPressed(KEY_BACKSPACE) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) && (letterIndex > 0)) {
+            if (IsKeyPressed(KEY_BACKSPACE) && (letterIndex > 0)) {
                 letterIndex--;
                 playerInitials[letterIndex] = '_';
-                selectedChar = 'A'; // Reseta a letra selecionada
             }
-            
-            // --- CONFIRMAR SELEÇÃO DA LETRA ATUAL ---
-            bool confirmLetter = IsKeyPressed(KEY_ENTER) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
-
-            if (letterIndex < 3) {
-                playerInitials[letterIndex] = (char)selectedChar; // Visualiza a letra selecionada
-                
-                if (confirmLetter) {
-                    letterIndex++;
-                    if (letterIndex < 3) {
-                        selectedChar = 'A'; // Reseta para a próxima inicial
-                    }
-                }
-            }
-            
-            // --- CONFIRMAR SCORE FINAL ---
-            if (letterIndex == 3 && confirmLetter) {
+            if (letterIndex == 3 && IsKeyPressed(KEY_ENTER)) {
                 AddNewScore(highScores, playerInitials, finalScore);
                 LoadHighScores(highScores);
                 estado = TELA_VER_SCORES;
             }
-            
             DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.7f));
             const char *tituloHS = "NEW HIGH SCORE!";
             Vector2 tamTituloHS = MeasureTextEx(fontTitulo, tituloHS, 60, 5);
@@ -709,24 +846,16 @@ int main() {
                 DrawTextEx(fontTitulo, "_", cursorPos, 50, 5, YELLOW);
             }
             if (letterIndex == 3) {
-                const char *enterText = "Pressione ENTER/X para salvar";
+                const char *enterText = "Pressione ENTER para salvar";
                 Vector2 tamEnter = MeasureTextEx(fontTitulo, enterText, 20, 5);
                 DrawTextEx(fontTitulo, enterText, (Vector2){(screenW - tamEnter.x) / 2, screenH/2 + 120}, 20, 5, WHITE);
             }
         }
-        
-        // --- VER SCORES ---
         else if (estado == TELA_VER_SCORES) {
-            
-            // --- DETECÇÃO DE CONTINUAR COM CONTROLE ---
-            if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ||
-                IsGamepadButtonPressed(0, GAMEPAD_BUTTON_UNKNOWN) || 
-                GetKeyPressed() != 0) {
-                
+            if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
                 estado = TELA_GAME_OVER;
                 opcaoGameOver = 0; 
             }
-            
             DrawRectangle(0, 0, screenW, screenH, BLACK);
             Vector2 scorePos = (Vector2){ screenW / 2.0f - 150, screenH / 2.0f - 100 };
             DrawTextEx(fontTitulo, "HIGH SCORES", (Vector2){scorePos.x, scorePos.y - 40}, 30, 5, YELLOW);
@@ -738,25 +867,16 @@ int main() {
             }
             const char *texto = "Press any button to continue...";
             Vector2 textSize = MeasureTextEx(fontTitulo, texto, 20, 5); 
-            DrawTextEx(fontTitulo, texto,
-                       (Vector2){ (screenW - textSize.x) / 2.0f, screenH - 100 }, 
-                       20, 5, (Color){150,150,150,255});
+            DrawTextEx(fontTitulo, texto, (Vector2){ (screenW - textSize.x) / 2.0f, screenH - 100 }, 20, 5, (Color){150,150,150,255});
         }
-        
-        // --- GAME OVER  ---
         else if (estado == TELA_GAME_OVER) {
-            
-            // --- NAVEGAÇÃO CIMA COM CONTROLE ---
-            if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
+            if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
                 opcaoGameOver = 0;
             }
-            // --- NAVEGAÇÃO BAIXO COM CONTROLE ---
-            if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
+            if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
                 opcaoGameOver = 1;
             }
-            
-            // --- CONFIRMAÇÃO COM CONTROLE ---
-            if (IsKeyPressed(KEY_ENTER) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
+            if (IsKeyPressed(KEY_ENTER)) {
                 ResetJogo(&rabisco, inimigos, MAX_INIMIGOS, mapa);
                 spawnButton.isPressed = false; 
                 if (opcaoGameOver == 0) {
@@ -765,19 +885,16 @@ int main() {
                     estado = TELA_TITULO;
                 }
             }
-            
             DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.7f)); 
             const char *tituloGO = "GAME OVER";
             Vector2 tamTitulo = MeasureTextEx(fontTitulo, tituloGO, 80, 5);
             DrawTextEx(fontTitulo, tituloGO, (Vector2){(screenW - tamTitulo.x) / 2, screenH/2 - 100}, 80, 5, RED);
             const char *opcao1 = "Jogar de novo";
             Vector2 tamOp1 = MeasureTextEx(fontTitulo, opcao1, 40, 5);
-            DrawTextEx(fontTitulo, opcao1, (Vector2){(screenW - tamOp1.x) / 2, screenH/2 + 20}, 40, 5, 
-                       (opcaoGameOver == 0 ? YELLOW : WHITE)); 
+            DrawTextEx(fontTitulo, opcao1, (Vector2){(screenW - tamOp1.x) / 2, screenH/2 + 20}, 40, 5, (opcaoGameOver == 0 ? YELLOW : WHITE)); 
             const char *opcao2 = "Voltar ao Menu";
             Vector2 tamOp2 = MeasureTextEx(fontTitulo, opcao2, 40, 5);
-            DrawTextEx(fontTitulo, opcao2, (Vector2){(screenW - tamOp2.x) / 2, screenH/2 + 80}, 40, 5,
-                       (opcaoGameOver == 1 ? YELLOW : WHITE)); 
+            DrawTextEx(fontTitulo, opcao2, (Vector2){(screenW - tamOp2.x) / 2, screenH/2 + 80}, 40, 5, (opcaoGameOver == 1 ? YELLOW : WHITE)); 
         }
 
         EndDrawing();
@@ -790,9 +907,10 @@ int main() {
     
     UnloadTexture(texButtonUp);
     UnloadTexture(texButtonDown);
-    UnloadTexture(texPedestal); 
+    UnloadTexture(texPedestalBase); 
     
     UnloadInimigoAssets(); 
+    UnloadItensAssets();
     
     UnloadTexture(mapa);
     UnloadFont(fontTitulo);
