@@ -183,7 +183,8 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
     r->pos.y = Clamp(nextY, minY, maxY);
 
     if(isMoving){
-        if(fabs(move.x) > fabs(move.y)){
+        // --- CORREÇÃO DA PRIORIDADE ---
+        if(fabs(move.x) >= fabs(move.y)){ // PRIORIDADE HORIZONTAL OU EMPATE (>=)
             lastDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
         }else{
             lastDir = (move.y < 0) ? DIR_UP : DIR_DOWN;
@@ -201,9 +202,12 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
         frame++;
         frameTime = 0;
     }
-    if (lastDir == DIR_LEFT) frame %= FRAME_LEFT;
+    if (lastDir == DIR_UP) frame %= FRAME_UP;
+    else if (lastDir == DIR_LEFT) frame %= FRAME_LEFT;
     else if (lastDir == DIR_RIGHT) frame %= FRAME_RIGHT;
+    else if (lastDir == DIR_DOWN) frame %= FRAME_LEFT; 
     else frame = 0;
+
 
     if (r->attackDurationTimer > 0) {
         attackFrameTime += GetFrameTime();
@@ -229,7 +233,7 @@ void DrawRabisco(Rabisco *r){
             case DIR_UP:    currentFrame = walkUp[frame % FRAME_UP]; break;
             case DIR_LEFT:  currentFrame = walkLeft[frame % FRAME_LEFT]; break;
             case DIR_RIGHT: currentFrame = walkRight[frame % FRAME_RIGHT]; break;
-            case DIR_DOWN:
+            case DIR_DOWN:  currentFrame = walkLeft[frame % FRAME_LEFT]; break; 
             case DIR_IDLE:
             default:        currentFrame = idle; 
         }
