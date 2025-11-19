@@ -46,22 +46,22 @@ Texture2D GetItemIconTexture(ItemType tipo) {
 
 int GetItemPrice(ItemType tipo) {
     switch (tipo) {
-        case ITEM_CORACAO_PARTIDO: return 1;
-        case ITEM_CORACAO: return 1;
-        case ITEM_CORACAO_DUPLO: return 1;
+        case ITEM_CORACAO_PARTIDO: return 7;
+        case ITEM_CORACAO: return 7;
+        case ITEM_CORACAO_DUPLO: return 7;
         
-        case ITEM_LAPIS_PARTIDO: return 1; 
-        case ITEM_COLA: return 1;          
-        
-        
-        case ITEM_APONTADOR: return 1;
-        case ITEM_BOTAS_DE_PAPEL: return 1;
-        case ITEM_CORACAO_VAZIO: return 1;
+        case ITEM_LAPIS_PARTIDO: return 15; 
+        case ITEM_COLA: return 15;          
         
         
-        case ITEM_ESTILETE: return 1;
-        case ITEM_PENGOO: return 1;
-        case ITEM_GRAMPEADOR: return 1;
+        case ITEM_APONTADOR: return 15;
+        case ITEM_BOTAS_DE_PAPEL: return 15;
+        case ITEM_CORACAO_VAZIO: return 15;
+        
+        
+        case ITEM_ESTILETE: return 15;
+        case ITEM_PENGOO: return 15;
+        case ITEM_GRAMPEADOR: return 15;
         
         default: return 0;
     }

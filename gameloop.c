@@ -1,10 +1,11 @@
 #include "gameloop.h"
-#include "raymath.h" 
+#include "raymath.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
+// --- GLOBAL VARIABLE DEFINITIONS (Movidas de main.c) ---
 Projetil projeteis[MAX_PROJETEIS];
 Texture2D texProjetilBorracha; 
 int ondaAtual = 0;
@@ -17,7 +18,7 @@ Pedestal pedestais[NUM_PEDESTAIS];
 Texture2D texPedestalBase; 
 
 
-// --- FUNÇÕES DE PONTUAÇÃO ---
+// --- FUNÇÕES DE PONTUAÇÃO (Sem alteração) ---
 
 int CompareScores(const void *a, const void *b) {
     ScoreEntry *scoreA = (ScoreEntry *)a;
@@ -65,7 +66,7 @@ void AddNewScore(ScoreEntry scores[], char newInitials[], int newScore) {
 }
 
 
-// FUNÇÕES DE PROJÉTIL 
+// --- FUNÇÕES DE PROJÉTIL (Sem alteração) ---
 
 void SpawnProjetilAtirador(Vector2 startPos, Vector2 direction) {
     for (int i = 0; i < MAX_PROJETEIS; i++) {
@@ -98,7 +99,6 @@ void UpdateProjeteis(Rabisco *r, int mapW, int mapH, int borderTop, int borderBo
     for (int i = 0; i < MAX_PROJETEIS; i++) {
         if (projeteis[i].active) {
             
-            // CORREÇÃO: Usando variável temporária para atribuição de struct
             Vector2 scaledVel = Vector2Scale(projeteis[i].velocity, projeteis[i].speed);
             projeteis[i].pos = Vector2Add(projeteis[i].pos, scaledVel);
             
@@ -130,7 +130,7 @@ void DrawProjeteis() {
 
 // --- FUNÇÕES DE ITEM/PEDESTAL ---
 
-// Sorteios 
+// Sorteios (Helper functions)
 ItemType GetRandomVidaConsumivelItem(void) {
     int r = GetRandomValue(0, 2);
     if (r == 0) return ITEM_CORACAO_PARTIDO;
@@ -341,8 +341,9 @@ void DrawPedestais(Font font) {
                 pedestais[i].pos.y + (texPedestalBase.height * scale) - 35.0f
             };
             
+            // CORRIGIDO: Cor do preço mudada para branco com borda preta
             DrawTextEx(font, precoTexto, (Vector2){txtPos.x + 1, txtPos.y + 1}, 20, 2, BLACK); 
-            DrawTextEx(font, precoTexto, txtPos, 20, 2, YELLOW);
+            DrawTextEx(font, precoTexto, txtPos, 20, 2, WHITE); // COR BRANCA
         }
     }
 }
