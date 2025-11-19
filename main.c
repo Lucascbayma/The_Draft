@@ -1,14 +1,14 @@
 #include "raylib.h"
-#include "rabisco.h"
-#include "inimigos.h"
-#include "itens.h"
+#include "gameloop.h" 
 #include "stdio.h"
 #include "raymath.h"
 #include <stdlib.h> 
 #include <string.h> 
+#include "rabisco.h"
+#include "inimigos.h"
+#include "itens.h"
 
 #define MAX_INIMIGOS 6
-#define MAX_PROJETEIS 150
 #define MAX_HIGH_SCORES 5
 #define NUM_PEDESTAIS 4 
 
@@ -20,445 +20,6 @@ typedef enum {
     TELA_VER_SCORES,
     TELA_GAME_OVER 
 } EstadoJogo;
-
-typedef struct {
-    Vector2 pos;
-    Vector2 velocity; 
-    float speed;
-    int dano;
-    bool active;
-    Rectangle bounds;
-    float escala; 
-} Projetil;
-
-typedef struct {
-    Rectangle bounds;
-    bool isPressed;
-    float escala;
-} Button;
-
-typedef struct {
-    char initials[4];
-    int score;
-} ScoreEntry;
-
-
-typedef struct {
-    Vector2 pos;
-    Rectangle hitRect;      
-    Rectangle triggerRect;  
-    bool active;            
-    ItemType tipo;
-    int preco;
-    float floatTimer;  
-    bool waitingForRestock; 
-    float restockTimer;     
-} Pedestal;
-
-// --- VARIÁVEIS GLOBAIS ---
-Projetil projeteis[MAX_PROJETEIS];
-Texture2D texProjetilBorracha; 
-int ondaAtual = 0;
-int subOnda = 0; 
-float chanceBonusOnda = 0.35f;
-ScoreEntry highScores[MAX_HIGH_SCORES];
-int finalScore = 0; 
-int currentScore = 0;
-
-Pedestal pedestais[NUM_PEDESTAIS];
-Texture2D texPedestalBase; 
-
-
-// --- FUNÇÕES AUXILIARES ---
-
-void ResolveStaticCollision(Rabisco *r, Rectangle obstacleBounds) { 
-    Rectangle rabiscoHitbox = GetRabiscoHitbox(r);
-
-    if(CheckCollisionRecs(rabiscoHitbox, obstacleBounds)){
-        float overlapX = (rabiscoHitbox.width / 2.0f + obstacleBounds.width / 2.0f) - fabs((rabiscoHitbox.x + rabiscoHitbox.width/2.0f) - (obstacleBounds.x + obstacleBounds.width/2.0f));
-        float overlapY = (rabiscoHitbox.height / 2.0f + obstacleBounds.height / 2.0f) - fabs((rabiscoHitbox.y + rabiscoHitbox.height/2.0f) - (obstacleBounds.y + obstacleBounds.height/2.0f));
-        
-        float tinyPush = 0.01f;
-
-        if(overlapX < overlapY){
-            if(rabiscoHitbox.x < obstacleBounds.x){
-                r->pos.x -= overlapX + tinyPush; 
-            }else{ 
-                r->pos.x += overlapX + tinyPush; 
-            }
-        } 
-        else{
-            if(rabiscoHitbox.y < obstacleBounds.y){ 
-                r->pos.y -= overlapY + tinyPush; 
-            }else{ 
-                r->pos.y += overlapY + tinyPush; 
-            }
-        }
-    }
-}
-
-// Sorteios
-ItemType GetRandomVidaConsumivelItem(void) {
-    int r = GetRandomValue(0, 2);
-    if (r == 0) return ITEM_CORACAO_PARTIDO;
-    if (r == 1) return ITEM_CORACAO;
-    return ITEM_CORACAO_DUPLO;
-}
-ItemType GetRandomUpgradeItem(void) {
-    int r = GetRandomValue(0, 7);
-    switch(r) {
-        case 0: return ITEM_LAPIS_PARTIDO;
-        case 1: return ITEM_APONTADOR;
-        case 2: return ITEM_ESTILETE;
-        case 3: return ITEM_COLA;
-        case 4: return ITEM_BOTAS_DE_PAPEL;
-        case 5: return ITEM_PENGOO;
-        case 6: return ITEM_CORACAO_VAZIO;
-        case 7: return ITEM_GRAMPEADOR;
-        default: return ITEM_APONTADOR;
-    }
-}
-void ShuffleTipos(ItemType array[], int n) {
-    for (int i = n - 1; i > 0; i--) {
-        int j = GetRandomValue(0, i);
-        ItemType temp = array[i];
-        array[i] = array[j];
-        array[j] = temp;
-    }
-}
-
-void SetupPedestais(int mapW, int mapBorderTop) {
-    float scale = 0.15f; 
-    float pW = texPedestalBase.width * scale;
-    float pH = texPedestalBase.height * scale;
-    
-    if (pW == 0) pW = 50;
-    if (pH == 0) pH = 70;
-    
-    float pedestalY = 50.0f; 
-    
-    float pedX[4] = {130.0f, 250.0f, 615.0f, 750.5f};
-
-    for (int i = 0; i < NUM_PEDESTAIS; i++) {
-        pedestais[i].pos = (Vector2){ pedX[i], pedestalY };
-        pedestais[i].active = false; 
-        pedestais[i].tipo = ITEM_NULO;
-        pedestais[i].preco = 0;
-        pedestais[i].floatTimer = GetRandomValue(0, 100) / 10.0f;
-        pedestais[i].waitingForRestock = false;
-        pedestais[i].restockTimer = 0.0f;
-
-        pedestais[i].hitRect = (Rectangle){ 
-            pedestais[i].pos.x + 10, 
-            pedestais[i].pos.y + 20, 
-            pW - 20, 
-            pH - 20 
-        };
-        
-        pedestais[i].triggerRect = (Rectangle){
-            pedestais[i].hitRect.x - 10,
-            pedestais[i].hitRect.y - 10,
-            pedestais[i].hitRect.width + 20,
-            pedestais[i].hitRect.height + 20
-        };
-    }
-}
-
-void RestockPedestais(void) {
-    for(int i=0; i<NUM_PEDESTAIS; i++) {
-        pedestais[i].waitingForRestock = false;
-        pedestais[i].restockTimer = 0.0f;
-    }
-
-    pedestais[0].active = true; 
-    pedestais[0].tipo = GetRandomVidaConsumivelItem();
-    pedestais[0].preco = GetItemPrice(pedestais[0].tipo);
-
-    ItemType up1 = GetRandomUpgradeItem();
-    ItemType up2 = GetRandomUpgradeItem();
-    pedestais[1].active = true; pedestais[1].tipo = up1; pedestais[1].preco = GetItemPrice(up1);
-    pedestais[2].active = true; pedestais[2].tipo = up2; pedestais[2].preco = GetItemPrice(up2);
-
-    pedestais[3].active = false; 
-    pedestais[3].tipo = ITEM_NULO;
-    pedestais[3].preco = 0;
-}
-
-
-// --- UPDATE PEDESTAIS ---
-void UpdatePedestais(Rabisco *r) {
-    for (int i = 0; i < NUM_PEDESTAIS; i++) {
-        ResolveStaticCollision(r, pedestais[i].hitRect);
-
-        // 1. Lógica de Reabastecimento 
-        if (pedestais[i].waitingForRestock) {
-            pedestais[i].restockTimer -= GetFrameTime();
-            if (pedestais[i].restockTimer <= 0) {
-                pedestais[i].waitingForRestock = false;
-                
-                if (i == 0) { 
-                    pedestais[i].tipo = GetRandomVidaConsumivelItem();
-                    pedestais[i].preco = GetItemPrice(pedestais[i].tipo);
-                    pedestais[i].active = true; 
-                } 
-                else if (i == 1 || i == 2) { 
-                    pedestais[i].tipo = GetRandomUpgradeItem();
-                    pedestais[i].preco = GetItemPrice(pedestais[i].tipo);
-                    pedestais[i].active = true;
-                }
-                // Pedestal 4 continua vazio
-            }
-            continue; 
-        }
-
-        if (!pedestais[i].active) continue; 
-        
-        pedestais[i].floatTimer += GetFrameTime();
-        
-        // 2. Lógica de Compra
-        if (CheckCollisionRecs(GetRabiscoHitbox(r), pedestais[i].triggerRect)) {
-            
-            if (r->moedas >= pedestais[i].preco) {
-                 
-                 bool comprou = false;
-                 
-                 if (pedestais[i].tipo == ITEM_CORACAO_PARTIDO || pedestais[i].tipo == ITEM_CORACAO || pedestais[i].tipo == ITEM_CORACAO_DUPLO) {
-                     if (r->currentHitPoints < r->maxHeartContainers * 2) {
-                        if (pedestais[i].tipo == ITEM_CORACAO_PARTIDO) r->currentHitPoints += 1;
-                        else if (pedestais[i].tipo == ITEM_CORACAO) r->currentHitPoints += 2;
-                        else r->currentHitPoints += 4;
-                        
-                        if (r->currentHitPoints > r->maxHeartContainers * 2) r->currentHitPoints = r->maxHeartContainers * 2;
-                        comprou = true;
-                     }
-                 } else {
-                     AddItemAoInventario(r, pedestais[i].tipo);
-                     AplicarStatsInventario(r);
-                     if (pedestais[i].tipo == ITEM_GRAMPEADOR || pedestais[i].tipo == ITEM_CORACAO_VAZIO) {
-                         if(pedestais[i].tipo == ITEM_GRAMPEADOR) r->currentHitPoints += 2;
-                     }
-                     comprou = true;
-                 }
-
-                 if (comprou) {
-                     r->moedas -= pedestais[i].preco;
-                     pedestais[i].active = false; 
-                     pedestais[i].tipo = ITEM_NULO;
-                     
-                     // --- INICIA O DELAY DE RESTOCK ---
-                     pedestais[i].waitingForRestock = true;
-                     pedestais[i].restockTimer = 2.0f; 
-                 }
-            }
-        }
-    }
-}
-
-void DrawPedestais(Font font) {
-    float scale = 0.15f;
-    for (int i = 0; i < NUM_PEDESTAIS; i++) {
-        
-        // 1. Desenha a BASE 
-        DrawTextureEx(texPedestalBase, pedestais[i].pos, 0.0f, scale, WHITE);
-        
-        // 2. Desenha o Item e Preço
-        if (pedestais[i].active && pedestais[i].tipo != ITEM_NULO) {
-            float floatY = sinf(pedestais[i].floatTimer * 2.0f) * 3.0f; 
-            
-            Texture2D itemTex = GetItemIconTexture(pedestais[i].tipo);
-            
-            if (itemTex.id > 0) {
-                float itemScale = 0.1f; 
-                Vector2 itemPos = { 
-                    pedestais[i].pos.x + (texPedestalBase.width * scale / 2) - (itemTex.width * itemScale / 2), 
-                    pedestais[i].pos.y + floatY + 20.0f 
-                };
-                
-                DrawTextureEx(itemTex, itemPos, 0.0f, itemScale, WHITE);
-            }
-            
-            const char* precoTexto = TextFormat("$%d", pedestais[i].preco);
-            Vector2 txtSize = MeasureTextEx(font, precoTexto, 20, 2);
-            Vector2 txtPos = { 
-                pedestais[i].pos.x + (texPedestalBase.width * scale / 2) - (txtSize.x / 2), 
-                pedestais[i].pos.y + (texPedestalBase.height * scale) - 35.0f
-            };
-            
-            DrawTextEx(font, precoTexto, (Vector2){txtPos.x + 1, txtPos.y + 1}, 20, 2, BLACK); 
-            DrawTextEx(font, precoTexto, txtPos, 20, 2, YELLOW);
-        }
-    }
-}
-
-int CompareScores(const void *a, const void *b) {
-    ScoreEntry *scoreA = (ScoreEntry *)a;
-    ScoreEntry *scoreB = (ScoreEntry *)b;
-    return scoreB->score - scoreA->score;
-}
-void SaveHighScores(ScoreEntry scores[]) {
-    FILE *file = fopen("scores.txt", "w");
-    if (file == NULL) return;
-    for (int i = 0; i < MAX_HIGH_SCORES; i++) {
-        fprintf(file, "%s %d\n", scores[i].initials, scores[i].score);
-    }
-    fclose(file);
-}
-void LoadHighScores(ScoreEntry scores[]) {
-    FILE *file = fopen("scores.txt", "r");
-    if (file == NULL) {
-        strcpy(scores[0].initials, "AAA"); scores[0].score = 50;
-        strcpy(scores[1].initials, "BBB"); scores[1].score = 40;
-        strcpy(scores[2].initials, "CCC"); scores[2].score = 30;
-        strcpy(scores[3].initials, "DDD"); scores[3].score = 20;
-        strcpy(scores[4].initials, "EEE"); scores[4].score = 10;
-        SaveHighScores(scores);
-        return;
-    }
-    for (int i = 0; i < MAX_HIGH_SCORES; i++) {
-        if (fscanf(file, "%s %d", scores[i].initials, &scores[i].score) != 2) {
-            strcpy(scores[i].initials, "NUL");
-            scores[i].score = 0;
-        }
-    }
-    fclose(file);
-}
-bool IsHighScore(ScoreEntry scores[], int newScore) {
-    return newScore > scores[MAX_HIGH_SCORES - 1].score;
-}
-void AddNewScore(ScoreEntry scores[], char newInitials[], int newScore) {
-    ScoreEntry tempScores[MAX_HIGH_SCORES + 1];
-    for(int i=0; i < MAX_HIGH_SCORES; i++) tempScores[i] = scores[i];
-    strcpy(tempScores[MAX_HIGH_SCORES].initials, newInitials);
-    tempScores[MAX_HIGH_SCORES].score = newScore;
-    qsort(tempScores, MAX_HIGH_SCORES + 1, sizeof(ScoreEntry), CompareScores);
-    for(int i=0; i < MAX_HIGH_SCORES; i++) scores[i] = tempScores[i];
-    SaveHighScores(scores);
-}
-
-
-void SpawnProjetilAtirador(Vector2 startPos, Vector2 direction) {
-    for (int i = 0; i < MAX_PROJETEIS; i++) {
-        if (!projeteis[i].active) {
-            projeteis[i].escala = 0.04f;
-            projeteis[i].pos = Vector2Add(startPos, Vector2Scale(direction, 10.0f)); 
-            projeteis[i].velocity = direction;
-            projeteis[i].speed = 5.0f;
-            projeteis[i].dano = 1;
-            projeteis[i].active = true;
-            float hitboxSize = 7.0f; 
-            float visualW = texProjetilBorracha.width * projeteis[i].escala;
-            float visualH = texProjetilBorracha.height * projeteis[i].escala;
-            projeteis[i].bounds.width = hitboxSize;
-            projeteis[i].bounds.height = hitboxSize;
-            projeteis[i].bounds.x = projeteis[i].pos.x + (visualW / 2.0f) - (hitboxSize / 2.0f);
-            projeteis[i].bounds.y = projeteis[i].pos.y + (visualH / 2.0f) - (hitboxSize / 2.0f);
-            break;
-        }
-    }
-}
-void UpdateProjeteis(Rabisco *r, int mapW, int mapH, int borderTop, int borderBottom, int borderLeft, int borderRight) {
-    for (int i = 0; i < MAX_PROJETEIS; i++) {
-        if (projeteis[i].active) {
-            projeteis[i].pos = Vector2Add(projeteis[i].pos, Vector2Scale(projeteis[i].velocity, projeteis[i].speed));
-            float visualW = texProjetilBorracha.width * projeteis[i].escala;
-            float visualH = texProjetilBorracha.height * projeteis[i].escala;
-            projeteis[i].bounds.x = projeteis[i].pos.x + (visualW / 2.0f) - (projeteis[i].bounds.width / 2.0f);
-            projeteis[i].bounds.y = projeteis[i].pos.y + (visualH / 2.0f) - (projeteis[i].bounds.height / 2.0f);
-            
-            if (CheckCollisionRecs(projeteis[i].bounds, GetRabiscoHitbox(r))) { 
-                r->currentHitPoints -= projeteis[i].dano;
-                projeteis[i].active = false;
-            }
-            if (projeteis[i].pos.x < borderLeft || projeteis[i].pos.x > mapW - borderRight ||
-                projeteis[i].pos.y < borderTop || projeteis[i].pos.y > mapH - borderBottom) {
-                projeteis[i].active = false;
-            }
-        }
-    }
-}
-void DrawProjeteis() {
-    for (int i = 0; i < MAX_PROJETEIS; i++) {
-        if (projeteis[i].active) {
-            DrawTextureEx(texProjetilBorracha, projeteis[i].pos, 0.0f, projeteis[i].escala, WHITE);
-        }
-    }
-}
-
-
-Vector2 GetRandomSpawnPosition(Rabisco *r, int mapW, int mapH, int bTop, int bBot, int bLeft, int bRight) {
-    Vector2 pos;
-    float safeRadius = 250.0f; 
-    do {
-        pos = (Vector2){ 
-            (float)GetRandomValue(bLeft + 50, mapW - bRight - 50), 
-            (float)GetRandomValue(bTop + 50, mapH - bBot - 50) 
-        };
-    } while (Vector2Distance(pos, r->pos) < safeRadius);
-    return pos;
-}
-
-void SpawnWave(int onda, Inimigo inimigos[], Rabisco *r, int mapW, int mapH, int bTop, int bBot, int bLeft, int bRight) {
-    switch (onda) {
-        case 1:
-        {
-            SpawnInimigo(&inimigos[0], TIPO_PADRAO, GetRandomSpawnPosition(r, mapW, mapH, bTop, bBot, bLeft, bRight));
-            SpawnInimigo(&inimigos[1], TIPO_PADRAO, GetRandomSpawnPosition(r, mapW, mapH, bTop, bBot, bLeft, bRight));
-            break;
-        }
-        case 2:
-        {
-            SpawnInimigo(&inimigos[0], TIPO_PADRAO, GetRandomSpawnPosition(r, mapW, mapH, bTop, bBot, bLeft, bRight));
-            SpawnInimigo(&inimigos[1], TIPO_PADRAO, GetRandomSpawnPosition(r, mapW, mapH, bTop, bBot, bLeft, bRight));
-            SpawnInimigo(&inimigos[2], TIPO_TANQUE, GetRandomSpawnPosition(r, mapW, mapH, bTop, bBot, bLeft, bRight));
-            break;
-        }
-        default:
-        { 
-            bool levaDificil = (GetRandomValue(0, 1) == 1);
-            if (levaDificil) {
-                int totalInimigos = GetRandomValue(3, 4);
-                SpawnInimigo(&inimigos[0], (GetRandomValue(0, 1) == 0 ? TIPO_ARANHA : TIPO_ATIRADOR_BORRACHA), GetRandomSpawnPosition(r, mapW, mapH, bTop, bBot, bLeft, bRight));
-                for (int i = 1; i < totalInimigos; i++) {
-                    SpawnInimigo(&inimigos[i], (InimigoType)GetRandomValue(0, 3), GetRandomSpawnPosition(r, mapW, mapH, bTop, bBot, bLeft, bRight));
-                }
-            } else {
-                int totalInimigos = GetRandomValue(4, 6);
-                for (int i = 0; i < totalInimigos; i++) {
-                    SpawnInimigo(&inimigos[i], (InimigoType)GetRandomValue(0, 1), GetRandomSpawnPosition(r, mapW, mapH, bTop, bBot, bLeft, bRight));
-                }
-            }
-            break;
-        }
-    }
-}
-
-
-void ResetJogo(Rabisco *rabisco, Inimigo inimigos[], int maxInimigos, Texture2D mapa) {
-    LimparInventario(rabisco);
-    AplicarStatsInventario(rabisco);
-
-    rabisco->pos = (Vector2){ mapa.width / 2.0f, mapa.height / 2.0f + 100.0f };
-    rabisco->currentHitPoints = rabisco->maxHeartContainers * 2; 
-    rabisco->moedas = 0; 
-    rabisco->facingDir = DIR_DOWN;
-    rabisco->attackTimer = 0.0f;
-    rabisco->attackDurationTimer = 0.0f;
-    
-    for (int i = 0; i < maxInimigos; i++) {
-        inimigos[i].active = false;
-    }
-    for (int i = 0; i < MAX_PROJETEIS; i++) {
-        projeteis[i].active = false;
-    }
-    
-    SetupPedestais(mapa.width, 65); 
-    RestockPedestais(); 
-    
-    ondaAtual = 0;
-    subOnda = 0;
-    chanceBonusOnda = 0.35f;
-    currentScore = 0; 
-}
 
 
 int main() {
@@ -512,11 +73,8 @@ int main() {
     Inimigo inimigos[MAX_INIMIGOS]; 
     
     texProjetilBorracha = LoadTexture("images/inimigo_borracha_tiro.png");
-
     Texture2D texButtonUp = LoadTexture("images/button1.png");
     Texture2D texButtonDown = LoadTexture("images/button2.png");
-    
-    // Carrega apenas a base "pedestal.png"
     texPedestalBase = LoadTexture("images/pedestal.png"); 
     
     Button spawnButton;
@@ -526,10 +84,9 @@ int main() {
         mapa.width / 2.0f - (texButtonUp.width * spawnButton.escala / 2.0f),
         mapa.height / 3.0f-170.0f,
         (float)texButtonUp.width * spawnButton.escala, 
-        (float)texButtonUp.height * spawnButton.escala 
+        (float)texButtonDown.height * spawnButton.escala 
     };
 
-    // Inicializa pedestais
     ResetJogo(&rabisco, inimigos, MAX_INIMIGOS, mapa);
     spawnButton.isPressed = false; 
 
@@ -547,7 +104,6 @@ int main() {
         ClearBackground(BLACK);
 
         if (estado == TELA_TITULO) {
-            // ... TELA TITULO ...
             tempoFrame += GetFrameTime();
             if (tempoFrame >= duracaoFrame) {
                 tempoFrame = 0.0f;
@@ -571,7 +127,6 @@ int main() {
         }
 
         else if (estado == TELA_TRANSICAO) {
-            // ... TELA TRANSIÇÃO ...
             Texture2D frame = tituloFrames[frameAtual];
             float scaleX = (float)screenW / frame.width;
             float scaleY = (float)screenH / frame.height;
@@ -588,18 +143,10 @@ int main() {
         }
 
         else if (estado == TELA_JOGO) {
-            if (IsKeyPressed(KEY_MINUS)) {
-                musicVolume -= 0.1f;
-                if (musicVolume < 0.0f) musicVolume = 0.0f;
-                SetMusicVolume(music, musicVolume);
-            }
-            if (IsKeyPressed(KEY_EQUAL)) { 
-                musicVolume += 0.1f;
-                if (musicVolume > 1.0f) musicVolume = 1.0f;
-                SetMusicVolume(music, musicVolume);
-            }
+            if (IsKeyPressed(KEY_MINUS)) { musicVolume -= 0.1f; if (musicVolume < 0.0f) musicVolume = 0.0f; SetMusicVolume(music, musicVolume); }
+            if (IsKeyPressed(KEY_EQUAL)) { musicVolume += 0.1f; if (musicVolume > 1.0f) musicVolume = 1.0f; SetMusicVolume(music, musicVolume); }
             
-            Rectangle pedestalHitboxes[4];
+            Rectangle pedestalHitboxes[NUM_PEDESTAIS];
             for(int i=0; i < NUM_PEDESTAIS; i++) pedestalHitboxes[i] = pedestais[i].hitRect;
             
             bool rabiscoAtacou = UpdateRabisco(&rabisco, mapa.width, mapa.height,
@@ -665,18 +212,10 @@ int main() {
                 ondaAtual++;
                 subOnda = 1; 
                 
-                // Limpa (esconde) pedestais durante a onda
-                for (int i = 0; i < NUM_PEDESTAIS; i++) {
-                    pedestais[i].active = false;
-                    pedestais[i].tipo = ITEM_NULO;
-                }
+                for (int i = 0; i < NUM_PEDESTAIS; i++) { pedestais[i].active = false; pedestais[i].tipo = ITEM_NULO; }
                 
-                if (ondaAtual == 3) {
-                    chanceBonusOnda = 0.35f;
-                } else if (ondaAtual > 3) {
-                    chanceBonusOnda += 0.15f;
-                    if (chanceBonusOnda > 0.95f) chanceBonusOnda = 0.95f; 
-                }
+                if (ondaAtual == 3) { chanceBonusOnda = 0.35f; } 
+                else if (ondaAtual > 3) { chanceBonusOnda += 0.15f; if (chanceBonusOnda > 0.95f) chanceBonusOnda = 0.95f; }
                 
                 SpawnWave(ondaAtual, inimigos, &rabisco, mapa.width, mapa.height, mapBorderTop, mapBorderBottom, mapBorderLeft, mapBorderRight);
             }
@@ -695,6 +234,7 @@ int main() {
                 if (inimigos[i].tint.r == RED.r) inimigos[i].tint = WHITE;
             }
 
+            // Lógica da Câmera
             Vector2 desiredTarget = rabisco.pos;
             camera.target.x += (desiredTarget.x - camera.target.x) * 0.15f;
             camera.target.y += (desiredTarget.y - camera.target.y) * 0.15f;
@@ -712,7 +252,6 @@ int main() {
                 if (subOnda == 0) {
                     DrawTextureEx(texButtonUp, (Vector2){spawnButton.bounds.x, spawnButton.bounds.y}, 0.0f, spawnButton.escala, WHITE);
                     DrawPedestais(fontTitulo);
-
                 } else {
                     DrawTextureEx(texButtonDown, (Vector2){spawnButton.bounds.x, spawnButton.bounds.y}, 0.0f, spawnButton.escala, WHITE);
                 }
@@ -724,11 +263,9 @@ int main() {
             EndMode2D();
             
             // --- HUD ---
-            int padding = 20;
-            int heartSize = 70;
+            int padding = 20; int heartSize = 70;
             for (int i = 0; i < rabisco.maxHeartContainers; i++) {
-                Texture2D heartTexture;
-                int heartValue = i * 2;
+                Texture2D heartTexture; int heartValue = i * 2;
                 if (rabisco.currentHitPoints >= heartValue + 2) heartTexture = rabisco.heartFull;
                 else if (rabisco.currentHitPoints == heartValue + 1) heartTexture = rabisco.heartBroken;
                 else heartTexture = rabisco.hollowHeart;
@@ -737,49 +274,31 @@ int main() {
                     DrawTextureEx(heartTexture, (Vector2){ padding + i * (heartSize + 5), padding }, 0.0f, scaleFactor, WHITE);
                 }
             }
-            int coinSize = 60;
-            int fontSize = 55;
-            float spacing = 0;
-            int coinPosY = padding + heartSize + padding / 2;
-            int textPosX = padding + coinSize + 10;
-            int textPosY = coinPosY + (coinSize - fontSize) / 2;
-            const char *coinText = TextFormat("%02d", rabisco.moedas);
-            float coinScale = (float)coinSize / rabisco.coinIcon.width;
+            int coinSize = 60; int fontSize = 55; float spacing = 0; int coinPosY = padding + heartSize + padding / 2;
+            int textPosX = padding + coinSize + 10; int textPosY = coinPosY + (coinSize - fontSize) / 2;
+            const char *coinText = TextFormat("%02d", rabisco.moedas); float coinScale = (float)coinSize / rabisco.coinIcon.width;
             DrawTextureEx(rabisco.coinIcon, (Vector2){ padding, coinPosY }, 0.0f, coinScale, WHITE);
             DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX - 2, textPosY}, fontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX + 2, textPosY}, fontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY - 2}, fontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY + 2}, fontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, coinText, (Vector2){textPosX, textPosY}, fontSize, spacing, WHITE);
-            int statusFontSize = 60; 
-            int iconStatusSize = 70; 
-            float iconOffset = 5; 
-            int lineHeight = statusFontSize + 10; 
-            int statusGap = 80; 
-            int statusY = coinPosY + coinSize + statusGap; 
-            const char* damageValue = TextFormat("%d", rabisco.dano);
-            Vector2 damageIconPos = (Vector2){ padding, statusY }; 
-            Vector2 damageValuePos = (Vector2){ padding + iconStatusSize + 10, statusY };
+            int statusFontSize = 60; int iconStatusSize = 70; float iconOffset = 5; float lineHeight = statusFontSize + 10; int statusGap = 80; int statusY = coinPosY + coinSize + statusGap; 
+            const char* damageValue = TextFormat("%d", rabisco.dano); Vector2 damageIconPos = (Vector2){ padding, statusY }; Vector2 damageValuePos = (Vector2){ padding + iconStatusSize + 10, statusY };
             DrawTextureEx(rabisco.iconDamage, (Vector2){ damageIconPos.x, damageIconPos.y + iconOffset }, 0.0f, (float)iconStatusSize / rabisco.iconDamage.width, WHITE); 
             DrawTextEx(rabisco.hudFont, damageValue, (Vector2){damageValuePos.x - 2, damageValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, damageValue, (Vector2){damageValuePos.x + 2, damageValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, damageValue, (Vector2){damageValuePos.x, damageValuePos.y - 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, damageValue, (Vector2){damageValuePos.x, damageValuePos.y + 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, damageValue, damageValuePos, statusFontSize, spacing, WHITE);
-            const char* speedValue = TextFormat("%.1f", rabisco.velocidade);
-            int speedY = statusY + lineHeight;
-            Vector2 speedIconPos = (Vector2){ padding, speedY };
-            Vector2 speedValuePos = (Vector2){ padding + iconStatusSize + 10, speedY };
+            const char* speedValue = TextFormat("%.1f", rabisco.velocidade); int speedY = statusY + lineHeight; Vector2 speedIconPos = (Vector2){ padding, speedY }; Vector2 speedValuePos = (Vector2){ padding + iconStatusSize + 10, speedY };
             DrawTextureEx(rabisco.iconVel, (Vector2){ speedIconPos.x, speedIconPos.y + iconOffset }, 0.0f, (float)iconStatusSize / rabisco.iconVel.width, WHITE);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x - 2, speedValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x + 2, speedValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x, speedValuePos.y - 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, (Vector2){speedValuePos.x, speedValuePos.y + 2}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, speedValue, speedValuePos, statusFontSize, spacing, WHITE);
-            const char* rangeValue = TextFormat("%.1f", rabisco.alcance);
-            int rangeY = speedY + lineHeight;
-            Vector2 rangeIconPos = (Vector2){ padding, rangeY };
-            Vector2 rangeValuePos = (Vector2){ padding + iconStatusSize + 10, rangeY };
+            const char* rangeValue = TextFormat("%.1f", rabisco.alcance); int rangeY = speedY + lineHeight; Vector2 rangeIconPos = (Vector2){ padding, rangeY }; Vector2 rangeValuePos = (Vector2){ padding + iconStatusSize + 10, rangeY };
             DrawTextureEx(rabisco.iconRange, (Vector2){ rangeIconPos.x, rangeIconPos.y + iconOffset }, 0.0f, (float)iconStatusSize / rabisco.iconRange.width, WHITE);
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x - 2, rangeValuePos.y}, statusFontSize, spacing, BLACK);
             DrawTextEx(rabisco.hudFont, rangeValue, (Vector2){rangeValuePos.x + 2, rangeValuePos.y}, statusFontSize, spacing, BLACK);
@@ -789,17 +308,14 @@ int main() {
             
             const char* scoreText = TextFormat("SCORE: %06d", currentScore);
             Vector2 scoreTextSize = MeasureTextEx(fontTitulo, scoreText, 40, 5);
-            DrawTextEx(fontTitulo, scoreText, (Vector2){screenW - scoreTextSize.x - 20, 20}, 40, 5, WHITE);
-
+            DrawTextEx(fontTitulo, scoreText, (Vector2){screenW - scoreTextSize.x - 20, 20}, 40, 5, WHITE); 
+            
             if (rabisco.currentHitPoints <= 0) {
                 finalScore = currentScore; 
                 if (IsHighScore(highScores, finalScore)) {
                     estado = TELA_INSERIR_SCORE;
                     letterIndex = 0;
-                    playerInitials[0] = '_';
-                    playerInitials[1] = '_';
-                    playerInitials[2] = '_';
-                    playerInitials[3] = '\0';
+                    playerInitials[0] = '_'; playerInitials[1] = '_'; playerInitials[2] = '_'; playerInitials[3] = '\0';
                 } else {
                     estado = TELA_GAME_OVER;
                     opcaoGameOver = 0; 
@@ -808,25 +324,13 @@ int main() {
         }
         
         else if (estado == TELA_INSERIR_SCORE) {
+            // --- TELA DE INSERÇÃO DE SCORE ---
             blinkTimer += GetFrameTime();
-            if (blinkTimer >= 0.5f) {
-                blinkTimer = 0.0f;
-                showCursor = !showCursor;
-            }
+            if (blinkTimer >= 0.5f) { blinkTimer = 0.0f; showCursor = !showCursor; }
             int key = GetKeyPressed();
-            if ((key >= KEY_A && key <= KEY_Z) && (letterIndex < 3)) {
-                playerInitials[letterIndex] = (char)key;
-                letterIndex++;
-            }
-            if (IsKeyPressed(KEY_BACKSPACE) && (letterIndex > 0)) {
-                letterIndex--;
-                playerInitials[letterIndex] = '_';
-            }
-            if (letterIndex == 3 && IsKeyPressed(KEY_ENTER)) {
-                AddNewScore(highScores, playerInitials, finalScore);
-                LoadHighScores(highScores);
-                estado = TELA_VER_SCORES;
-            }
+            if ((key >= KEY_A && key <= KEY_Z) && (letterIndex < 3)) { playerInitials[letterIndex] = (char)key; letterIndex++; }
+            if (IsKeyPressed(KEY_BACKSPACE) && (letterIndex > 0)) { letterIndex--; playerInitials[letterIndex] = '_'; }
+            if (letterIndex == 3 && IsKeyPressed(KEY_ENTER)) { AddNewScore(highScores, playerInitials, finalScore); LoadHighScores(highScores); estado = TELA_VER_SCORES; }
             DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.7f));
             const char *tituloHS = "NEW HIGH SCORE!";
             Vector2 tamTituloHS = MeasureTextEx(fontTitulo, tituloHS, 60, 5);
@@ -852,6 +356,7 @@ int main() {
             }
         }
         else if (estado == TELA_VER_SCORES) {
+            // --- TELA DE VISUALIZAÇÃO DE SCORE ---
             if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
                 estado = TELA_GAME_OVER;
                 opcaoGameOver = 0; 
@@ -870,20 +375,13 @@ int main() {
             DrawTextEx(fontTitulo, texto, (Vector2){ (screenW - textSize.x) / 2.0f, screenH - 100 }, 20, 5, (Color){150,150,150,255});
         }
         else if (estado == TELA_GAME_OVER) {
-            if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-                opcaoGameOver = 0;
-            }
-            if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-                opcaoGameOver = 1;
-            }
+            // --- TELA DE GAME OVER (Menu) ---
+            if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) { opcaoGameOver = 0; }
+            if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) { opcaoGameOver = 1; }
             if (IsKeyPressed(KEY_ENTER)) {
                 ResetJogo(&rabisco, inimigos, MAX_INIMIGOS, mapa);
                 spawnButton.isPressed = false; 
-                if (opcaoGameOver == 0) {
-                    estado = TELA_JOGO;
-                } else {
-                    estado = TELA_TITULO;
-                }
+                if (opcaoGameOver == 0) { estado = TELA_JOGO; } else { estado = TELA_TITULO; }
             }
             DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.7f)); 
             const char *tituloGO = "GAME OVER";
