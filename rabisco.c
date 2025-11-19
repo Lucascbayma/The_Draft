@@ -31,7 +31,7 @@ void InitRabisco(Rabisco *r, float x, float y) {
     // Stats Base
     r->baseMaxHeartContainers = 3;
     r->baseDano = 2;
-    r->baseVelocidade = 3.0f;
+    r->baseVelocidade = 2.5f;
     
     r->maxHeartContainers = r->baseMaxHeartContainers;
     r->currentHitPoints = r->maxHeartContainers * 2;
