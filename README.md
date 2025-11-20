@@ -1,7 +1,7 @@
 <h1 align="center">🖊️ The Draft</h1>
 
 <div align="center">
-    <img src="[https://via.placeholder.com/800x400?text=Gameplay+The+Draft](https://via.placeholder.com/800x400?text=Gameplay+The+Draft)" alt="Gameplay The Draft" width="100%">
+    <img src="images/titulo1.png" alt="Tela de início do The Draft" width="80%">
     <br><br>
 </div>
 
@@ -49,7 +49,7 @@ O jogo suporta Teclado e Controle.
 | Ação | Teclado | Gamepad (PlayStation/Xbox) |
 | :--- | :--- | :--- |
 | **Mover** | `W`, `A`, `S`, `D` | Analógico Esquerdo / D-Pad |
-| **Atacar** | `Setas` (↑, ↓, ←, →) | Botões de Face (△, ◯, X, □ / Y, B, A, X) |
+| **Atacar** | `Setas` (↑, ↓, ←, →) | `Botões` (△, ◯, X, □ / Y, B, A, X) |
 | **Interagir/Comprar** | `Espaço` ou `Enter` | Botão de Ação (X / A) |
 | **Pausar/Sair** | `ESC` | Start |
 
@@ -60,7 +60,7 @@ O jogo suporta Teclado e Controle.
 * **Linguagem:** C
 * **Biblioteca Gráfica:** [Raylib](https://www.raylib.com/)
 * **Compilação:** GCC
-* **Arte:** Procreate
+* **Arte:** Procreate (iPad)
 
 ---
 
