@@ -48,10 +48,10 @@ O jogo suporta Teclado e Controle.
 
 | Ação | Teclado | Gamepad (PlayStation/Xbox) |
 | :--- | :--- | :--- |
-| **Mover** | `W`, `A`, `S`, `D` | Analógico Esquerdo / D-Pad |
+| **Mover** | `W`, `A`, `S`, `D` | `Analógico Esquerdo` / `Setinhas` |
 | **Atacar** | `Setas` (↑, ↓, ←, →) | `Botões` (△, ◯, X, □ / Y, B, A, X) |
 | **Interagir/Comprar** | `Espaço` ou `Enter` | Botão de Ação (X / A) |
-| **Pausar/Sair** | `ESC` | Start |
+| **Sair** | `ESC` |
 
 ---
 
@@ -80,7 +80,7 @@ Certifique-se de ter instalado em sua máquina:
 Abra seu terminal e execute:
 
 ```bash
-[git clone https://github.com/SEU_USUARIO/the_draft.git](https://github.com/Lucascbayma/The_Draft.git)
+[git clone https://github.com/Lucascbayma/The_Draft.git]
 cd the_draft
 ```
 
@@ -91,15 +91,13 @@ cd the_draft
 Se você usa Mac e instalou a Raylib via `brew`, utilize este comando para garantir que todos os arquivos (`main`, `rabisco` e `inimigos`) sejam linkados corretamente:
 
 ```bash
-clang main.c rabisco.c inimigos.c -o the_draft \
--I/opt/homebrew/include -L/opt/homebrew/lib \
--lraylib -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
+gcc -std=c99 main.c gameloop.c rabisco.c inimigos.c itens.c -o jogo -lraylib -lm -lpthread -ldl -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
 ```
 
 Para rodar o jogo:
 
 ```bash
-./the_draft
+./jogo
 ```
 
 #### 🐧 Linux (Ubuntu/Debian)
@@ -107,13 +105,13 @@ Para rodar o jogo:
 Certifique-se de ter as dependências instaladas e rode:
 
 ```bash
-gcc main.c rabisco.c inimigos.c -o the_draft -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+gcc -std=c99 main.c gameloop.c rabisco.c inimigos.c itens.c -o jogo -lraylib -lm -lpthread -ldl -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
 ```
 
 Para rodar: 
 
 ```bash
-./the_draft
+./jogo
 ```
 
 #### 🪟 Windows
