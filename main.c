@@ -40,7 +40,7 @@ int main() {
     Texture2D fundoPreto = LoadTexture("images/fundo_preto.png");
     const int tamanhoFonteTitulo = 30; 
     Font fontTitulo = LoadFontEx("assets/PatrickHandSC-Regular.ttf", tamanhoFonteTitulo, NULL, 0); 
-    Music music = LoadMusicStream("audio/music/the_draft_music.mp3");
+    Music music = LoadMusicStream("audio/music/the_draft_music.ogg");
     music.looping = true;
     float musicVolume = 0.5f; 
     SetMusicVolume(music, musicVolume);

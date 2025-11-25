@@ -74,12 +74,12 @@ void LoadHighScores(ScoreEntry scores[]);
 bool IsHighScore(ScoreEntry scores[], int newScore);
 void AddNewScore(ScoreEntry scores[], char newInitials[], int newScore);
 
-// (Item Sorteio e Stats)
+// Item Sorteio e Stats
 ItemType GetRandomVidaConsumivelItem(void);
 ItemType GetRandomUpgradeItem(void);
 void ShuffleTipos(ItemType array[], int n);
 
-// Wave/Game Flow 
+// Onda/Game 
 void ResetJogo(Rabisco *rabisco, Inimigo inimigos[], int maxInimigos, Texture2D mapa);
 Vector2 GetRandomSpawnPosition(Rabisco *r, int mapW, int mapH, int bTop, int bBot, int bLeft, int bRight);
 void SpawnWave(int onda, Inimigo inimigos[], Rabisco *r, int mapW, int mapH, int bTop, int bBot, int bLeft, int bRight);

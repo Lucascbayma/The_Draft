@@ -5,7 +5,7 @@
 #include <string.h>
 #include <math.h>
 
-// --- GLOBAL VARIABLE DEFINITIONS (Movidas de main.c) ---
+// --- GLOBAL VARIABLE DEFINITIONS ---
 Projetil projeteis[MAX_PROJETEIS];
 Texture2D texProjetilBorracha; 
 int ondaAtual = 0;
@@ -18,7 +18,7 @@ Pedestal pedestais[NUM_PEDESTAIS];
 Texture2D texPedestalBase; 
 
 
-// --- FUNÇÕES DE PONTUAÇÃO (Sem alteração) ---
+// --- FUNÇÕES DE PONTUAÇÃO ---
 
 int CompareScores(const void *a, const void *b) {
     ScoreEntry *scoreA = (ScoreEntry *)a;
@@ -66,7 +66,7 @@ void AddNewScore(ScoreEntry scores[], char newInitials[], int newScore) {
 }
 
 
-// --- FUNÇÕES DE PROJÉTIL (Sem alteração) ---
+// --- FUNÇÕES DE PROJÉTIL ---
 
 void SpawnProjetilAtirador(Vector2 startPos, Vector2 direction) {
     for (int i = 0; i < MAX_PROJETEIS; i++) {
@@ -130,7 +130,6 @@ void DrawProjeteis() {
 
 // --- FUNÇÕES DE ITEM/PEDESTAL ---
 
-// Sorteios (Helper functions)
 ItemType GetRandomVidaConsumivelItem(void) {
     int r = GetRandomValue(0, 2);
     if (r == 0) return ITEM_CORACAO_PARTIDO;
@@ -194,12 +193,20 @@ void SetupPedestais(int mapW, int mapBorderTop) {
     if (pW == 0) pW = 50;
     if (pH == 0) pH = 70;
     
-    float pedestalY = 50.0f; 
-    
-    float pedX[4] = {130.0f, 250.0f, 615.0f, 750.5f};
+    float matrizPosicoes[NUM_PEDESTAIS][2] = {
+        {130.0f,  50.0f},  
+        {250.0f,  50.0f},  
+        {615.0f,  50.0f},  
+        {750.5f,  50.0f}   
+    };
 
     for (int i = 0; i < NUM_PEDESTAIS; i++) {
-        pedestais[i].pos = (Vector2){ pedX[i], pedestalY };
+        
+        float posX = matrizPosicoes[i][0];
+        float posY = matrizPosicoes[i][1];
+        
+        pedestais[i].pos = (Vector2){ posX, posY };
+        
         pedestais[i].active = false; 
         pedestais[i].tipo = ITEM_NULO;
         pedestais[i].preco = 0;
@@ -248,7 +255,6 @@ void UpdatePedestais(Rabisco *r) {
     for (int i = 0; i < NUM_PEDESTAIS; i++) {
         ResolveStaticCollision(r, pedestais[i].hitRect);
 
-        // 1. Lógica de Reabastecimento 
         if (pedestais[i].waitingForRestock) {
             pedestais[i].restockTimer -= GetFrameTime();
             if (pedestais[i].restockTimer <= 0) {
@@ -272,7 +278,6 @@ void UpdatePedestais(Rabisco *r) {
         
         pedestais[i].floatTimer += GetFrameTime();
         
-        // 2. Lógica de Compra
         if (CheckCollisionRecs(GetRabiscoHitbox(r), pedestais[i].triggerRect)) {
             
             if (r->moedas >= pedestais[i].preco) {
@@ -315,10 +320,8 @@ void DrawPedestais(Font font) {
     float scale = 0.15f;
     for (int i = 0; i < NUM_PEDESTAIS; i++) {
         
-        // 1. Desenha a BASE 
         DrawTextureEx(texPedestalBase, pedestais[i].pos, 0.0f, scale, WHITE);
         
-        // 2. Desenha o Item e Preço
         if (pedestais[i].active && pedestais[i].tipo != ITEM_NULO) {
             float floatY = sinf(pedestais[i].floatTimer * 2.0f) * 3.0f; 
             
@@ -341,9 +344,8 @@ void DrawPedestais(Font font) {
                 pedestais[i].pos.y + (texPedestalBase.height * scale) - 35.0f
             };
             
-            // CORRIGIDO: Cor do preço mudada para branco com borda preta
             DrawTextEx(font, precoTexto, (Vector2){txtPos.x + 1, txtPos.y + 1}, 20, 2, BLACK); 
-            DrawTextEx(font, precoTexto, txtPos, 20, 2, WHITE); // COR BRANCA
+            DrawTextEx(font, precoTexto, txtPos, 20, 2, WHITE); 
         }
     }
 }
