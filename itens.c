@@ -1,15 +1,10 @@
 #include "itens.h"
 
-// Texturas dos ÍCONES
-static Texture2D texLapisIcon, texApontadorIcon, texEstileteIcon;
 static Texture2D texColaIcon, texBotaIcon, texPengooIcon;
 static Texture2D texCorVazioIcon, texGrampeadorIcon;
 static Texture2D texCorPartidoIcon, texCorIcon, texCorDuploIcon;
 
 void InitItensAssets(void) {
-    texLapisIcon = LoadTexture("images/item_lapis_partido.png");
-    texApontadorIcon = LoadTexture("images/item_apontador.png");
-    texEstileteIcon = LoadTexture("images/item_estilete.png");
     texColaIcon = LoadTexture("images/item_cola.png");
     texBotaIcon = LoadTexture("images/item_bota_de_papel.png");
     texPengooIcon = LoadTexture("images/item_pengoo.png");
@@ -21,7 +16,6 @@ void InitItensAssets(void) {
 }
 
 void UnloadItensAssets(void) {
-    UnloadTexture(texLapisIcon); UnloadTexture(texApontadorIcon); UnloadTexture(texEstileteIcon);
     UnloadTexture(texColaIcon); UnloadTexture(texBotaIcon); UnloadTexture(texPengooIcon);
     UnloadTexture(texCorVazioIcon); UnloadTexture(texGrampeadorIcon);
     UnloadTexture(texCorPartidoIcon); UnloadTexture(texCorIcon); UnloadTexture(texCorDuploIcon);
@@ -29,9 +23,7 @@ void UnloadItensAssets(void) {
 
 Texture2D GetItemIconTexture(ItemType tipo) {
     switch (tipo) {
-        case ITEM_LAPIS_PARTIDO: return texLapisIcon;
-        case ITEM_APONTADOR: return texApontadorIcon;
-        case ITEM_ESTILETE: return texEstileteIcon;
+
         case ITEM_COLA: return texColaIcon;
         case ITEM_BOTAS_DE_PAPEL: return texBotaIcon;
         case ITEM_PENGOO: return texPengooIcon;
@@ -50,16 +42,12 @@ int GetItemPrice(ItemType tipo) {
         case ITEM_CORACAO: return 7;
         case ITEM_CORACAO_DUPLO: return 7;
         
-        case ITEM_LAPIS_PARTIDO: return 15; 
         case ITEM_COLA: return 15;          
         
-        
-        case ITEM_APONTADOR: return 15;
         case ITEM_BOTAS_DE_PAPEL: return 15;
         case ITEM_CORACAO_VAZIO: return 15;
         
         
-        case ITEM_ESTILETE: return 15;
         case ITEM_PENGOO: return 15;
         case ITEM_GRAMPEADOR: return 15;
         

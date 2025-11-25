@@ -5,9 +5,6 @@
 typedef enum {
     ITEM_NULO = 0,
     
-    ITEM_LAPIS_PARTIDO,
-    ITEM_APONTADOR,
-    ITEM_ESTILETE,
     
     ITEM_COLA,
     ITEM_BOTAS_DE_PAPEL,

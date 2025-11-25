@@ -5,7 +5,6 @@
 #include <string.h>
 #include <math.h>
 
-// --- GLOBAL VARIABLE DEFINITIONS ---
 Projetil projeteis[MAX_PROJETEIS];
 Texture2D texProjetilBorracha; 
 int ondaAtual = 0;
@@ -16,9 +15,6 @@ int finalScore = 0;
 int currentScore = 0;
 Pedestal pedestais[NUM_PEDESTAIS];
 Texture2D texPedestalBase; 
-
-
-// --- FUNÇÕES DE PONTUAÇÃO ---
 
 int CompareScores(const void *a, const void *b) {
     ScoreEntry *scoreA = (ScoreEntry *)a;
@@ -65,8 +61,6 @@ void AddNewScore(ScoreEntry scores[], char newInitials[], int newScore) {
     SaveHighScores(scores);
 }
 
-
-// --- FUNÇÕES DE PROJÉTIL ---
 
 void SpawnProjetilAtirador(Vector2 startPos, Vector2 direction) {
     for (int i = 0; i < MAX_PROJETEIS; i++) {
@@ -128,8 +122,6 @@ void DrawProjeteis() {
 }
 
 
-// --- FUNÇÕES DE ITEM/PEDESTAL ---
-
 ItemType GetRandomVidaConsumivelItem(void) {
     int r = GetRandomValue(0, 2);
     if (r == 0) return ITEM_CORACAO_PARTIDO;
@@ -139,15 +131,12 @@ ItemType GetRandomVidaConsumivelItem(void) {
 ItemType GetRandomUpgradeItem(void) {
     int r = GetRandomValue(0, 7);
     switch(r) {
-        case 0: return ITEM_LAPIS_PARTIDO;
-        case 1: return ITEM_APONTADOR;
-        case 2: return ITEM_ESTILETE;
         case 3: return ITEM_COLA;
         case 4: return ITEM_BOTAS_DE_PAPEL;
         case 5: return ITEM_PENGOO;
         case 6: return ITEM_CORACAO_VAZIO;
         case 7: return ITEM_GRAMPEADOR;
-        default: return ITEM_APONTADOR;
+        default: return ITEM_GRAMPEADOR;
     }
 }
 void ShuffleTipos(ItemType array[], int n) {
@@ -350,7 +339,6 @@ void DrawPedestais(Font font) {
     }
 }
 
-// --- FUNÇÕES DE FLUXO DE JOGO ---
 
 Vector2 GetRandomSpawnPosition(Rabisco *r, int mapW, int mapH, int bTop, int bBot, int bLeft, int bRight) {
     Vector2 pos;

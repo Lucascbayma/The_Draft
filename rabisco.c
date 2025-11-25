@@ -28,7 +28,7 @@ void InitRabisco(Rabisco *r, float x, float y) {
     r->pos = (Vector2){x, y};
     r->escala = 0.10f; 
     
-    // Stats Base
+
     r->baseMaxHeartContainers = 3;
     r->baseDano = 2;
     r->baseVelocidade = 2.5f;
@@ -142,7 +142,6 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
     float dx = move.x * r->velocidade;
     float dy = move.y * r->velocidade;
 
-    // --- COLISÃO COM PEDESTAIS ---
     Rectangle nextHitboxX = { 
         r->pos.x + dx + r->hitboxOffsetX, 
         r->pos.y + r->hitboxOffsetY, 
@@ -183,8 +182,8 @@ bool UpdateRabisco(Rabisco *r, int mapW, int mapH,
     r->pos.y = Clamp(nextY, minY, maxY);
 
     if(isMoving){
-        // --- CORREÇÃO DA PRIORIDADE ---
-        if(fabs(move.x) >= fabs(move.y)){ // PRIORIDADE HORIZONTAL OU EMPATE (>=)
+
+        if(fabs(move.x) >= fabs(move.y)){ 
             lastDir = (move.x > 0) ? DIR_RIGHT : DIR_LEFT;
         }else{
             lastDir = (move.y < 0) ? DIR_UP : DIR_DOWN;
@@ -376,9 +375,6 @@ void AplicarStatsInventario(Rabisco *r) {
     InventarioNode *atual = r->inventarioHead;
     while (atual != NULL) {
         switch (atual->tipo) {
-            case ITEM_LAPIS_PARTIDO: r->dano -= 1; break;
-            case ITEM_APONTADOR: r->dano += 1; break;
-            case ITEM_ESTILETE: r->dano += 3; break;
             case ITEM_COLA: r->velocidade -= 0.5f; break;
             case ITEM_BOTAS_DE_PAPEL: r->velocidade += 0.5f; break;
             case ITEM_PENGOO: r->velocidade += 1.5f; break;
