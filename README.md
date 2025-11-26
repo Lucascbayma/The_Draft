@@ -124,7 +124,7 @@ Para rodar:
 > ⚠️ **Nota:** O jogo foi desenvolvido e testado apenas em macOS e Linux. A compatibilidade com Windows não foi verificada, mas caso queira testar utilizando MinGW:
 
 ```bash
-gcc main.c rabisco.c inimigos.c -o the_draft.exe -lraylib -lopengl32 -lgdi32 -lwinmm
+gcc main.c gameloop.c rabisco.c inimigos.c -o the_draft.exe -lraylib -lopengl32 -lgdi32 -lwinmm
 ```
 
 ---
