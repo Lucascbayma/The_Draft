@@ -54,6 +54,11 @@ O jogo suporta Teclado e Controle.
 | **Sair** | `ESC` |
 
 ---
+## Vídeo da Gameplay 🎮
+
+<a href="https://youtu.be/ouBaxnoDCuw">Gameplay do The draft (Youtube)</a>
+
+---
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -105,7 +110,7 @@ Para rodar o jogo:
 Certifique-se de ter as dependências instaladas e rode:
 
 ```bash
-gcc -std=c99 main.c gameloop.c rabisco.c inimigos.c itens.c -o jogo -lraylib -lm -lpthread -ldl -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
+gcc main.c gameloop.c rabisco.c inimigos.c itens.c -o jogo -lraylib -lm -lpthread -ldl -lrt -lX11
 ```
 
 Para rodar: 
@@ -123,3 +128,6 @@ gcc main.c rabisco.c inimigos.c -o the_draft.exe -lraylib -lopengl32 -lgdi32 -lw
 ```
 
 ---
+### Vídeo de Gameplay 🎮
+
+<a href="https://youtu.be/ouBaxnoDCuw">Vídeo da gameplay do The draft (Youtube)</a>
