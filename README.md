@@ -86,7 +86,7 @@ Abra seu terminal e execute:
 
 ```bash
 [git clone https://github.com/Lucascbayma/The_Draft.git]
-cd the_draft
+cd The_Draft
 ```
 
 ### 3. Compilando e Rodando
