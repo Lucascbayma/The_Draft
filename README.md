@@ -123,11 +123,3 @@ gcc main.c rabisco.c inimigos.c -o the_draft.exe -lraylib -lopengl32 -lgdi32 -lw
 ```
 
 ---
-
-<div align="center"> 
-    <h3>🎬 Vídeo Demonstrativo</h3> 
-    <a href="[https://www.youtube.com/watch?v=ID_DO_VIDEO](https://www.youtube.com/watch?v=ID_DO_VIDEO)"> 
-        <img src="[https://img.youtube.com/vi/ID_DO_VIDEO/0.jpg](https://img.youtube.com/vi/ID_DO_VIDEO/0.jpg)" alt="The Draft Gameplay" width="600"> 
-    </a> 
-    <p><i>Clique na imagem para assistir um pouco da gameplay do The Draft</i></p> 
-</div>
