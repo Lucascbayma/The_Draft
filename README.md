@@ -128,6 +128,3 @@ gcc main.c gameloop.c rabisco.c inimigos.c -o the_draft.exe -lraylib -lopengl32 
 ```
 
 ---
-### Vídeo de Gameplay 🎮
-
-<a href="https://youtu.be/ouBaxnoDCuw">Vídeo da gameplay do The draft (Youtube)</a>
